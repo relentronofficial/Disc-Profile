@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TBT Mindset DISC Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════ */
+:root {
+  --bg: #0c0b09;
+  --surface: #131210;
+  --card: #1a1815;
+  --card2: #211f1b;
+  --border: #2c2925;
+  --border2: #3a3630;
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.10);
+  --gold-border: rgba(201,168,76,0.25);
+  --red: #c94c4c;
+  --red-dim: rgba(201,76,76,0.10);
+  --green: #4cad7a;
+  --green-dim: rgba(76,173,122,0.10);
+  --green-border: rgba(76,173,122,0.25);
+  --blue: #4c82c9;
+  --blue-dim: rgba(76,130,201,0.10);
+  --amber: #c97d4c;
+  --amber-dim: rgba(201,125,76,0.10);
+  --txt: #f0ece4;
+  --txt2: #9a9488;
+  --txt3: #5c5850;
+  --disc-d: #c94c4c;
+  --disc-i: #c9a84c;
+  --disc-s: #4cad7a;
+  --disc-c: #4c82c9;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════
+   VIEWS
+═══════════════════════════════════ */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ═══════════════════════════════════
+   TOP NAV BAR (admin only)
+═══════════════════════════════════ */
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 50px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 16px;
+}
+.topnav-logo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Playfair Display', serif;
+  font-size: 14px; font-weight: 700; color: var(--gold);
+  letter-spacing: 0.04em;
+}
+.topnav-logo-icon {
+  width: 28px; height: 28px; background: var(--gold);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 900; color: #0c0b09;
+}
+.topnav-sep { flex: 1; }
+.topnav-btn {
+  padding: 5px 14px; border-radius: 5px; border: 1px solid var(--border2);
+  background: transparent; color: var(--txt2); font-family: 'DM Sans', sans-serif;
+  font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.topnav-btn:hover { background: var(--card); color: var(--txt); }
+.topnav-btn.active-nav { background: var(--gold-dim); border-color: var(--gold-border); color: var(--gold); }
+
+/* ═══════════════════════════════════
+   ASSESSMENT FORM — LANDING
+═══════════════════════════════════ */
+#formView {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* Grain texture overlay */
+#formView::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* Landing Screen */
+.landing {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 24px;
+  position: relative; z-index: 1;
+  text-align: center;
+}
+
+.landing-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--gold-border);
+  background: var(--gold-dim);
+  color: var(--gold);
+  font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 28px;
+  animation: fadeDown 0.6s ease both;
+}
+.landing-badge span { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+
+.landing-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 900; line-height: 1.1;
+  color: var(--txt);
+  margin-bottom: 8px;
+  animation: fadeDown 0.7s 0.1s ease both;
+}
+.landing-title em { color: var(--gold); font-style: italic; }
+
+.landing-subtitle {
+  font-size: clamp(15px, 2vw, 18px);
+  color: var(--txt2); line-height: 1.6;
+  max-width: 580px; margin: 0 auto 40px;
+  animation: fadeDown 0.7s 0.2s ease both;
+}
+
+.landing-info-row {
+  display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px;
+  animation: fadeDown 0.7s 0.3s ease both;
+}
+.info-chip {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--txt2);
+}
+.info-chip svg { width: 14px; height: 14px; color: var(--gold); }
+
+.disc-row {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px;
+  animation: fadeDown 0.7s 0.35s ease both;
+}
+.disc-chip {
+  padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  border: 1px solid;
+}
+.disc-chip.D { background: rgba(201,76,76,0.1); color: #e07070; border-color: rgba(201,76,76,0.3); }
+.disc-chip.I { background: rgba(201,168,76,0.1); color: #e0c070; border-color: rgba(201,168,76,0.3); }
+.disc-chip.S { background: rgba(76,173,122,0.1); color: #70c09a; border-color: rgba(76,173,122,0.3); }
+.disc-chip.C { background: rgba(76,130,201,0.1); color: #70a0e0; border-color: rgba(76,130,201,0.3); }
+
+/* Intake Form */
+.intake-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%; max-width: 520px;
+  margin: 0 auto;
+  animation: fadeUp 0.7s 0.4s ease both;
+}
+.intake-title { font-size: 14px; font-weight: 600; color: var(--txt); margin-bottom: 20px; }
+
+.intake-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.intake-full { grid-column: 1/-1; }
+
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 10px; font-weight: 500; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.08em; }
+.form-input {
+  height: 40px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 0 12px; font-size: 13px; color: var(--txt);
+  font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border 0.15s;
+}
+.form-input:focus { border-color: var(--gold-border); }
+.form-input::placeholder { color: var(--txt3); }
+
+.start-btn {
+  width: 100%; height: 48px; margin-top: 16px;
+  background: var(--gold);
+  border: none; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 600; color: #0c0b09;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.start-btn:hover { background: var(--gold2); transform: translateY(-1px); }
+.start-btn svg { width: 16px; height: 16px; }
+
+/* ═══════════════════════════════════
+   QUESTION SCREEN
+═══════════════════════════════════ */
+.question-screen {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  padding: 0 24px 60px;
+  position: relative; z-index: 1;
+}
+
+/* Progress Bar */
+.progress-bar-wrap {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg);
+  padding: 16px 0 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+.progress-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  max-width: 700px; margin: 0 auto 10px;
+  font-size: 11px;
+}
+.progress-meta .section-label { color: var(--gold); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+.progress-meta .q-counter { color: var(--txt2); font-weight: 500; font-family: 'Playfair Display', serif; }
+.progress-track {
+  max-width: 700px; margin: 0 auto;
+  height: 3px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--gold);
+  border-radius: 2px; transition: width 0.4s ease;
+}
+
+/* Question */
+.question-wrap {
+  max-width: 700px; margin: 0 auto; width: 100%;
+  animation: fadeUp 0.45s ease both;
+}
+
+.q-section-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--txt3); letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.q-section-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+
+.q-scenario-tag {
+  font-size: 10px; font-weight: 600; color: var(--gold);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.q-number {
+  font-family: 'Playfair Display', serif;
+  font-size: 11px; color: var(--txt3); margin-bottom: 4px;
+}
+
+.q-text {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700; line-height: 1.35;
+  color: var(--txt); margin-bottom: 10px;
+}
+
+.q-instruction {
+  font-size: 13px; color: var(--txt3); font-style: italic;
+  margin-bottom: 32px; line-height: 1.6;
+}
+
+/* Options */
+.options-grid {
+  display: grid; gap: 10px; margin-bottom: 32px;
+}
+
+.option-btn {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+  cursor: pointer; transition: all 0.18s;
+  text-align: left; font-family: 'DM Sans', sans-serif;
+  width: 100%;
+}
+.option-btn:hover {
+  border-color: var(--gold-border);
+  background: var(--card2);
+  transform: translateX(3px);
+}
+.option-btn.selected {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+}
+.option-letter {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--txt2);
+  flex-shrink: 0; transition: all 0.18s;
+  font-family: 'Playfair Display', serif;
+}
+.option-btn.selected .option-letter {
+  background: var(--gold); color: #0c0b09; border-color: var(--gold);
+}
+.option-text { font-size: 14px; color: var(--txt2); line-height: 1.55; padding-top: 4px; transition: color 0.18s; }
+.option-btn.selected .option-text { color: var(--txt); }
+.option-btn:hover .option-text { color: var(--txt); }
+
+/* Reflection input */
+.reflection-wrap { margin-bottom: 36px; }
+.reflection-label { font-size: 11px; color: var(--txt3); margin-bottom: 7px; display: block; font-style: italic; }
+.reflection-input {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; font-size: 13px; color: var(--txt2);
+  font-family: 'DM Sans', sans-serif; outline: none;
+  transition: border 0.15s; resize: vertical; min-height: 60px;
+  line-height: 1.6;
+}
+.reflection-input:focus { border-color: var(--gold-border); }
+.reflection-input::placeholder { color: var(--txt3); }
+
+/* Nav buttons */
+.q-nav {
+  display: flex; gap: 10px; align-items: center;
+  max-width: 700px; margin: 0 auto;
+}
+.q-back {
+  height: 44px; padding: 0 20px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 8px; color: var(--txt2);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer;
+  transition: all 0.15s;
+}
+.q-back:hover { background: var(--card); color: var(--txt); }
+.q-next {
+  flex: 1; height: 44px;
+  background: var(--gold); border: none; border-radius: 8px;
+  color: #0c0b09; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.q-next:hover { background: var(--gold2); }
+.q-next:disabled { background: var(--border); color: var(--txt3); cursor: not-allowed; }
+
+/* Section divider */
+.section-divider {
+  max-width: 700px; margin: 0 auto 40px;
+  background: var(--card);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px 24px;
+  display: flex; align-items: center; gap: 14px;
+  animation: fadeUp 0.4s ease both;
+}
+.sd-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--gold-dim); border: 1px solid var(--gold-border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold);
+  flex-shrink: 0;
+}
+.sd-label { font-size: 10px; color: var(--gold); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
+.sd-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--txt); }
+.sd-desc { font-size: 12px; color: var(--txt3); margin-top: 2px; }
+
+/* ═══════════════════════════════════
+   RESULTS SCREEN
+═══════════════════════════════════ */
+.results-screen {
+  max-width: 800px; margin: 0 auto;
+  padding: 60px 24px;
+  position: relative; z-index: 1;
+}
+
+.results-header { text-align: center; margin-bottom: 48px; }
+.results-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 900; color: var(--txt); margin-bottom: 8px;
+}
+.results-header h1 em { color: var(--gold); font-style: italic; }
+.results-header p { font-size: 14px; color: var(--txt2); }
+
+/* Score bar cards */
+.scores-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  margin-bottom: 40px;
+}
+@media (max-width: 600px) { .scores-grid { grid-template-columns: 1fr; } }
+
+.score-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+  transition: all 0.2s;
+}
+.score-card.dominant {
+  border-color: var(--gold-border);
+  background: var(--gold-dim);
+}
+.sc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sc-name { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; }
+.sc-count { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; }
+.sc-sub { font-size: 11px; color: var(--txt2); margin-bottom: 10px; }
+.sc-bar-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.sc-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.sc-pct { font-size: 11px; color: var(--txt3); margin-top: 5px; text-align: right; font-weight: 600; }
+
+/* dominant profile card */
+.dominant-profile {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; margin-bottom: 24px;
+}
+.dp-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.dp-badge {
+  width: 52px; height: 52px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; font-weight: 900; flex-shrink: 0;
+}
+.dp-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; color: var(--txt); margin-bottom: 4px; }
+.dp-nickname { font-size: 13px; color: var(--txt2); }
+
+.dp-body { padding: 24px 28px; }
+.dp-section { margin-bottom: 20px; }
+.dp-section-label {
+  font-size: 10px; font-weight: 600; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+}
+.dp-section p { font-size: 14px; color: var(--txt2); line-height: 1.7; }
+
+.dp-prescription {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin-top: 16px;
+}
+.dp-prescription-label {
+  font-size: 10px; font-weight: 600; color: var(--gold);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+}
+.dp-prescription p { font-size: 13px; color: var(--txt2); line-height: 1.7; }
+
+.results-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.res-btn {
+  height: 44px; padding: 0 24px; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.res-btn-primary { background: var(--gold); border: none; color: #0c0b09; }
+.res-btn-primary:hover { background: var(--gold2); }
+.res-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--txt2); }
+.res-btn-outline:hover { background: var(--card); color: var(--txt); }
+
+/* ═══════════════════════════════════
+   ADMIN PANEL
+═══════════════════════════════════ */
+#adminView {
+  padding-top: 50px;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.admin-layout {
+  display: flex; height: calc(100vh - 50px);
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.admin-sidebar::-webkit-scrollbar { width: 3px; }
+.admin-sidebar::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.as-section-label {
+  font-size: 9px; font-weight: 600; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 14px 14px 5px;
+}
+.as-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 14px; cursor: pointer;
+  font-size: 12px; font-weight: 500; color: var(--txt2);
+  transition: all 0.15s; border-left: 2px solid transparent;
+  margin-bottom: 1px;
+}
+.as-item:hover { background: var(--card); color: var(--txt); }
+.as-item.active { background: var(--gold-dim); color: var(--gold); border-left-color: var(--gold); }
+.as-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.as-badge {
+  margin-left: auto; background: var(--gold); color: #0c0b09;
+  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 7px;
+}
+
+/* Admin main */
+.admin-main {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+}
+.admin-main::-webkit-scrollbar { width: 4px; }
+.admin-main::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.admin-page { display: none; padding: 24px; }
+.admin-page.active { display: block; }
+
+/* Page header */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+}
+.page-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--txt); margin-bottom: 3px; }
+.page-sub { font-size: 12px; color: var(--txt3); }
+.page-actions { display: flex; gap: 8px; align-items: center; }
+.admin-btn {
+  height: 36px; padding: 0 16px; border-radius: 7px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.admin-btn-gold { background: var(--gold); border: none; color: #0c0b09; }
+.admin-btn-gold:hover { background: var(--gold2); }
+.admin-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--txt2); }
+.admin-btn-outline:hover { background: var(--card); color: var(--txt); }
+
+/* Stat cards */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+}
+.stat-card.gold-border { border-color: var(--gold-border); background: var(--gold-dim); }
+.stat-val { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; color: var(--txt); margin-bottom: 4px; }
+.stat-label { font-size: 11px; color: var(--txt3); }
+.stat-sub { font-size: 11px; color: var(--txt2); margin-top: 6px; font-weight: 500; }
+
+/* DISC distribution chart */
+.disc-dist-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 24px;
+}
+.disc-dist-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; text-align: center;
+}
+.ddc-letter {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px; font-weight: 900; margin-bottom: 4px;
+}
+.ddc-name { font-size: 10px; color: var(--txt3); margin-bottom: 8px; }
+.ddc-count { font-size: 20px; font-weight: 700; color: var(--txt); margin-bottom: 6px; }
+.ddc-bar-track { height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto; max-width: 80px; overflow: hidden; }
+.ddc-bar-fill { height: 100%; border-radius: 2px; }
+
+/* Filters */
+.filter-bar {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  align-items: center;
+}
+.filter-input {
+  height: 34px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0 10px 0 28px; font-size: 12px; color: var(--txt);
+  font-family: 'DM Sans', sans-serif; outline: none;
+  transition: border 0.15s; position: relative;
+}
+.filter-input:focus { border-color: var(--gold-border); }
+.filter-input::placeholder { color: var(--txt3); }
+.filter-wrap { position: relative; }
+.filter-wrap svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--txt3); pointer-events: none; }
+
+.filter-select {
+  height: 34px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0 10px; font-size: 12px; color: var(--txt);
+  font-family: 'DM Sans', sans-serif; outline: none; cursor: pointer;
+}
+.filter-select:focus { border-color: var(--gold-border); }
+
+/* Responses table */
+.table-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th {
+  background: var(--surface); padding: 10px 14px;
+  font-size: 10px; font-weight: 600; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  text-align: left; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 12px 14px; font-size: 12px; color: var(--txt2);
+  border-bottom: 1px solid var(--border); vertical-align: middle;
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: var(--card2); }
+
+.user-cell { display: flex; align-items: center; gap: 9px; }
+.user-av {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--gold-dim); border: 1px solid var(--gold-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--gold);
+  flex-shrink: 0;
+}
+.user-av.D { background: var(--red-dim); border-color: rgba(201,76,76,0.3); color: #e07070; }
+.user-av.I { background: var(--gold-dim); border-color: var(--gold-border); color: var(--gold2); }
+.user-av.S { background: var(--green-dim); border-color: var(--green-border); color: #70c09a; }
+.user-av.C { background: var(--blue-dim); border-color: rgba(76,130,201,0.3); color: #70a0e0; }
+
+.user-name { font-size: 13px; font-weight: 500; color: var(--txt); }
+.user-biz { font-size: 10px; color: var(--txt3); }
+
+.disc-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 4px;
+  font-size: 11px; font-weight: 700;
+  font-family: 'Playfair Display', serif; letter-spacing: 0.04em;
+}
+.disc-badge.D { background: var(--red-dim); color: #e07070; border: 0.5px solid rgba(201,76,76,0.3); }
+.disc-badge.I { background: var(--gold-dim); color: var(--gold2); border: 0.5px solid var(--gold-border); }
+.disc-badge.S { background: var(--green-dim); color: #70c09a; border: 0.5px solid var(--green-border); }
+.disc-badge.C { background: var(--blue-dim); color: #70a0e0; border: 0.5px solid rgba(76,130,201,0.3); }
+
+.score-pills { display: flex; gap: 4px; }
+.score-pip {
+  width: 20px; height: 20px; border-radius: 4px;
+  font-size: 9px; font-weight: 700; color: #0c0b09;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.action-icons { display: flex; gap: 6px; }
+.icon-btn {
+  width: 28px; height: 28px; border-radius: 5px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; color: var(--txt3);
+}
+.icon-btn:hover { background: var(--card2); color: var(--txt); border-color: var(--border2); }
+.icon-btn svg { width: 12px; height: 12px; }
+
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  display: inline-block; margin-right: 5px;
+}
+.status-dot.complete { background: var(--green); }
+.status-dot.partial { background: var(--amber); }
+
+/* ═══════════════════════════════════
+   DETAIL MODAL (drawer)
+═══════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.6);
+  display: none; align-items: flex-start; justify-content: flex-end;
+}
+.modal-overlay.open { display: flex; }
+
+.detail-drawer {
+  width: 520px; height: 100vh;
+  background: var(--surface); border-left: 1px solid var(--border);
+  overflow-y: auto; padding: 24px;
+  animation: slideLeft 0.25s ease both;
+}
+.detail-drawer::-webkit-scrollbar { width: 3px; }
+.detail-drawer::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.drawer-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 32px; height: 32px; border-radius: 6px;
+  background: var(--card); border: 1px solid var(--border);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--txt2); transition: all 0.15s;
+}
+.drawer-close:hover { color: var(--txt); background: var(--card2); }
+.drawer-close svg { width: 14px; height: 14px; }
+
+/* Drawer user header */
+.du-header {
+  display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; margin-top: 8px;
+}
+.du-avatar {
+  width: 52px; height: 52px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; flex-shrink: 0;
+}
+.du-name { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+.du-meta { font-size: 12px; color: var(--txt3); line-height: 1.6; }
+
+/* Score bars in drawer */
+.drawer-scores { margin-bottom: 24px; }
+.drawer-score-row { margin-bottom: 14px; }
+.dsr-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.dsr-label { font-size: 12px; font-weight: 600; }
+.dsr-val { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700; }
+.dsr-sub { font-size: 10px; color: var(--txt3); }
+.dsr-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.dsr-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+
+/* Q&A log */
+.qa-log { }
+.qa-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+}
+.qa-q { font-size: 11px; color: var(--txt3); margin-bottom: 5px; font-weight: 500; }
+.qa-a {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--txt);
+}
+.qa-letter {
+  width: 22px; height: 22px; border-radius: 50%;
+  font-size: 11px; font-weight: 700; color: #0c0b09;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.qa-reflection { font-size: 11px; color: var(--txt3); margin-top: 6px; font-style: italic; border-top: 1px solid var(--border); padding-top: 6px; }
+
+/* Section label in drawer */
+.drawer-section-label {
+  font-size: 10px; font-weight: 600; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 12px; margin-top: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.drawer-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ═══════════════════════════════════
+   QUESTION MANAGER PAGE
+═══════════════════════════════════ */
+.qm-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 10px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.qm-num {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--gold-dim); border: 1px solid var(--gold-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--gold);
+  flex-shrink: 0; font-family: 'Playfair Display', serif;
+}
+.qm-body { flex: 1; }
+.qm-section-tag {
+  font-size: 9px; font-weight: 600; color: var(--gold);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px;
+}
+.qm-q { font-size: 13px; color: var(--txt); margin-bottom: 6px; line-height: 1.4; font-weight: 500; }
+.qm-options { display: flex; gap: 6px; flex-wrap: wrap; }
+.qm-opt {
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  border: 0.5px solid var(--border2); color: var(--txt3);
+}
+.qm-opt.A { border-color: rgba(201,76,76,0.3); color: #e07070; background: var(--red-dim); }
+.qm-opt.B { border-color: rgba(201,168,76,0.3); color: var(--gold2); background: var(--gold-dim); }
+.qm-opt.C { border-color: rgba(76,173,122,0.3); color: #70c09a; background: var(--green-dim); }
+.qm-opt.D { border-color: rgba(76,130,201,0.3); color: #70a0e0; background: var(--blue-dim); }
+.qm-actions { display: flex; gap: 6px; }
+
+/* Interpretation page */
+.interp-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 14px;
+}
+.interp-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.interp-letter {
+  width: 36px; height: 36px; border-radius: 8px;
+  font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.interp-body { padding: 16px 18px; }
+.interp-row { margin-bottom: 12px; }
+.interp-row-label { font-size: 10px; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; font-weight: 600; }
+.interp-row-text { font-size: 13px; color: var(--txt2); line-height: 1.6; }
+
+/* ═══════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════ */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideLeft {
+  from { transform: translateX(30px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media (max-width: 768px) {
+  .admin-sidebar { display: none; }
+  .disc-dist-grid { grid-template-columns: 1fr 1fr; }
+  .detail-drawer { width: 100vw; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     FORM VIEW
+═══════════════════════════════════ -->
+<div id="formView" class="view active">
+
+  <!-- LANDING -->
+  <div class="landing" id="landingScreen">
+    <div class="landing-badge"><span></span> Tamil Business Tribe <span></span></div>
+    <h1 class="landing-title">Personality &amp; <em>Mindset</em> Profile</h1>
+    <p class="landing-subtitle">20 scenario-based questions designed to reveal how you think, feel, decide, and lead — as an entrepreneur and as a person.</p>
+
+    <div class="landing-info-row">
+      <div class="info-chip">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0114 0z"/></svg>
+        ~8 Minutes
+      </div>
+      <div class="info-chip">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        20 Questions
+      </div>
+      <div class="info-chip">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        No right or wrong answers
+      </div>
+    </div>
+
+    <div class="disc-row">
+      <span class="disc-chip D">D — Dominant · The Fire Starter</span>
+      <span class="disc-chip I">I — Influential · The Heartbeat</span>
+      <span class="disc-chip S">S — Steady · The Quiet Root</span>
+      <span class="disc-chip C">C — Conscientious · The Architect</span>
+    </div>
+
+    <div class="intake-form">
+      <div class="intake-title">Tell us a little about yourself</div>
+      <div class="intake-grid">
+        <div class="form-group intake-full">
+          <label class="form-label">Full Name *</label>
+          <input type="text" class="form-input" id="in_name" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="in_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input type="text" class="form-input" id="in_city" placeholder="Chennai">
+        </div>
+        <div class="form-group intake-full">
+          <label class="form-label">Business / Work</label>
+          <input type="text" class="form-input" id="in_biz" placeholder="What do you do?">
+        </div>
+      </div>
+      <button class="start-btn" onclick="startAssessment()">
+        Begin Assessment
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div class="question-screen" id="questionScreen" style="display:none">
+    <div class="progress-bar-wrap">
+      <div class="progress-meta">
+        <span class="section-label" id="sectionLabel">Section 1</span>
+        <span class="q-counter" id="qCounter">1 / 20</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:5%"></div>
+      </div>
+    </div>
+    <div id="questionContent"></div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="resultsScreen" style="display:none">
+    <div class="results-screen">
+      <div class="results-header">
+        <h1>Your <em>Mindset</em> Profile</h1>
+        <p id="resultsUserName">Here is what your answers reveal about you.</p>
+      </div>
+
+      <div class="scores-grid" id="scoresGrid"></div>
+      <div id="dominantProfileCard"></div>
+
+      <div class="results-actions">
+        <button class="res-btn res-btn-outline" onclick="restartAssessment()">Retake Assessment</button>
+        <button class="res-btn res-btn-primary" onclick="switchToAdmin()">View in Admin Panel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════
+     ADMIN VIEW
+═══════════════════════════════════ -->
+<div id="adminView" class="view">
+  <!-- TOP NAV -->
+  <div class="topnav">
+    <div class="topnav-logo"><div class="topnav-logo-icon">T</div>TBT Admin</div>
+    <div class="topnav-sep"></div>
+    <button class="topnav-btn" onclick="switchToForm()">← Back to Assessment</button>
+    <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+    <span style="font-size:11px;color:var(--txt3)">Live</span>
+  </div>
+
+  <div class="admin-layout">
+    <!-- SIDEBAR -->
+    <div class="admin-sidebar">
+      <div class="as-section-label">Overview</div>
+      <div class="as-item active" onclick="adminNav(this,'dashPage')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        Dashboard
+      </div>
+      <div class="as-section-label">Assessments</div>
+      <div class="as-item" onclick="adminNav(this,'responsesPage')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        All Responses
+        <span class="as-badge" id="sidebarCount">0</span>
+      </div>
+      <div class="as-item" onclick="adminNav(this,'questionsPage')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Questions
+      </div>
+      <div class="as-section-label">DISC</div>
+      <div class="as-item" onclick="adminNav(this,'interpPage')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Interpretations
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+
+      <!-- DASHBOARD -->
+      <div class="admin-page active" id="dashPage">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-sub">DISC Assessment overview — Tamil Business Tribe</div>
+          </div>
+          <div class="page-actions">
+            <button class="admin-btn admin-btn-outline" onclick="adminNav(document.querySelector('.as-item:nth-child(4)'),'responsesPage')">View All →</button>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="dashStats"></div>
+        <div class="disc-dist-grid" id="discDist"></div>
+
+        <div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Recent Submissions</div>
+        <div class="table-wrap">
+          <table class="admin-table" id="recentTable">
+            <thead>
+              <tr>
+                <th>Respondent</th>
+                <th>Dominant Type</th>
+                <th>Scores D·I·S·C</th>
+                <th>Submitted</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="recentTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RESPONSES -->
+      <div class="admin-page" id="responsesPage">
+        <div class="page-header">
+          <div>
+            <div class="page-title">All Responses</div>
+            <div class="page-sub">Complete list of submitted assessments</div>
+          </div>
+          <div class="page-actions">
+            <button class="admin-btn admin-btn-outline" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-wrap">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" class="filter-input" style="width:220px" placeholder="Search name, city, business…" oninput="filterResponses(this.value)">
+          </div>
+          <select class="filter-select" onchange="filterByDisc(this.value)" id="discFilter">
+            <option value="">All Types</option>
+            <option value="D">D — Dominant</option>
+            <option value="I">I — Influential</option>
+            <option value="S">S — Steady</option>
+            <option value="C">C — Conscientious</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Respondent</th>
+                <th>City</th>
+                <th>Dominant</th>
+                <th>D</th><th>I</th><th>S</th><th>C</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="allResponsesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- QUESTIONS MANAGER -->
+      <div class="admin-page" id="questionsPage">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Question Manager</div>
+            <div class="page-sub">All 20 DISC scenario questions — view and manage</div>
+          </div>
+        </div>
+        <div id="qmList"></div>
+      </div>
+
+      <!-- INTERPRETATIONS -->
+      <div class="admin-page" id="interpPage">
+        <div class="page-header">
+          <div>
+            <div class="page-title">DISC Interpretations</div>
+            <div class="page-sub">Profile descriptions and prescriptions used in results</div>
+          </div>
+        </div>
+        <div id="interpList"></div>
+      </div>
+
+    </div><!-- /admin-main -->
+  </div><!-- /admin-layout -->
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="modal-overlay" id="detailModal" onclick="closeDrawer(event)">
+  <div class="detail-drawer" id="detailDrawer">
+    <button class="drawer-close" onclick="closeDrawerBtn()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div id="drawerContent"></div>
+  </div>
+</div>
+
+<script>
+/* ═════════════════════════════════════════════
+   DATA — QUESTIONS
+═════════════════════════════════════════════ */
+const SECTIONS = [
+  { label: "Section 1 — Everyday Reactions & Inner World", range: [1,5] },
+  { label: "Section 2 — How You Handle People & Conflict", range: [6,10] },
+  { label: "Section 3 — Business Instinct & Emotional Recovery", range: [11,15] },
+  { label: "Section 4 — Risk, Recognition & Your Vision", range: [16,20] },
+];
+
+const QUESTIONS = [
+  {
+    id:1, section:1,
+    tag:"DAILY LIFE · MORNING ROUTINE",
+    text:"It is 7 AM. You have a full day ahead. What does your morning look like?",
+    instruction:"Don't overthink — just pick what feels most natural to you.",
+    options:{
+      A:"I am already working. I check yesterday's results and plan my moves for today.",
+      B:"I scroll through my phone, reply to messages, and catch up with people I care about.",
+      C:"I have a quiet routine — tea, a walk maybe. I like to ease into the day peacefully.",
+      D:"I review my schedule and to-do list to make sure everything is organised before I start."
+    }
+  },
+  {
+    id:2, section:1,
+    tag:"PEOPLE & RELATIONSHIPS · A FRIEND IN TROUBLE",
+    text:"Your close friend calls you upset — their business is struggling badly. What do you do first?",
+    instruction:"There is no correct answer here — just go with your gut.",
+    options:{
+      A:"I immediately start listing things they should fix and push them to act now.",
+      B:"I listen, empathise, then start energising them — 'You've got this, let's go!'",
+      C:"I sit with them, let them talk it out fully, and just be present without rushing.",
+      D:"I ask questions to understand exactly what went wrong before suggesting anything."
+    }
+  },
+  {
+    id:3, section:1,
+    tag:"EVERYDAY STRESS · TRAFFIC JAM",
+    text:"You are stuck in Chennai traffic and already 20 minutes late to an important meeting. Your reaction?",
+    instruction:"Be honest — what actually goes through your mind?",
+    options:{
+      A:"I am frustrated and I call ahead immediately to take control of the situation.",
+      B:"I text the person something warm or funny so they do not feel bad waiting.",
+      C:"I feel anxious but stay calm — I focus on breathing and arriving safely.",
+      D:"I mentally plan what I will say when I arrive to explain clearly and professionally."
+    }
+  },
+  {
+    id:4, section:1,
+    tag:"MONEY & RISK · A NEW OPPORTUNITY",
+    text:"Someone offers you a business deal — good potential but some risk. You have not thought about it before. What happens inside you?",
+    instruction:"Notice your inner reaction, not what you think you should feel.",
+    options:{
+      A:"Immediate excitement — I am already thinking about how to make it work.",
+      B:"Curiosity and buzz — I want to tell someone about it and talk it through.",
+      C:"Caution — I want to think about how it affects my current stability first.",
+      D:"Scepticism — I want to see the numbers, the plan, and the downside risk."
+    }
+  },
+  {
+    id:5, section:1,
+    tag:"SELF-IMAGE · HOW OTHERS SEE YOU",
+    text:"If your closest friends described you in one word, which of these is most likely?",
+    instruction:"Ask yourself honestly — not who you want to be, but who you actually are right now.",
+    options:{
+      A:"Driven — they know I always find a way to get what I want.",
+      B:"Fun — I am the one who brings energy and makes things interesting.",
+      C:"Reliable — they know I will always be there when it matters.",
+      D:"Thorough — I never miss a detail and I think before I speak."
+    }
+  },
+  {
+    id:6, section:2,
+    tag:"LEARNING & GROWTH · WATCHING SOMEONE FAIL",
+    text:"You watch a fellow entrepreneur make a mistake you can clearly see. What do you do?",
+    instruction:"Go with what you would naturally do, not what is polite.",
+    options:{
+      A:"I tell them directly — wasting time on a wrong path is worse than a hard truth.",
+      B:"I share my experience enthusiastically and try to uplift them.",
+      C:"I wait until they are ready to hear it — I do not want to discourage them.",
+      D:"I share a structured observation only if they ask — I do not want to overstep."
+    }
+  },
+  {
+    id:7, section:2,
+    tag:"CONFLICT · AN ARGUMENT",
+    text:"You disagree with someone during a group discussion. The tension is visible. What do you do?",
+    instruction:"This reveals a lot — be honest with yourself.",
+    options:{
+      A:"I hold my ground. I do not back down unless I see clear proof I am wrong.",
+      B:"I try to defuse it with humour or energy — I hate heavy tension.",
+      C:"I soften my position to keep the peace, even if I still partly disagree.",
+      D:"I ask everyone to pause and look at the facts objectively before continuing."
+    }
+  },
+  {
+    id:8, section:2,
+    tag:"DAILY LIFE · UNEXPECTED FREE TIME",
+    text:"You suddenly have an unexpected free afternoon with nothing planned. What do you do?",
+    instruction:"Your unplanned moments reveal your true nature.",
+    options:{
+      A:"I fill it immediately — there is always something productive I can do.",
+      B:"I call someone or head somewhere social — I do not enjoy being alone for long.",
+      C:"I rest, watch something I enjoy, or spend quiet time with family.",
+      D:"I organise something I have been putting off — my files, plans, or notes."
+    }
+  },
+  {
+    id:9, section:2,
+    tag:"MONEY & RISK · SPENDING ON YOURSELF",
+    text:"You have just had a good month financially. How do you treat yourself?",
+    instruction:"Your relationship with money tells a lot about your mindset.",
+    options:{
+      A:"I reinvest it straight away — more growth, more resources, more momentum.",
+      B:"I celebrate with people I love — a dinner, a trip, something memorable.",
+      C:"I save most of it — security first, comfort later.",
+      D:"I allocate it carefully — some saved, some invested, expenses tracked."
+    }
+  },
+  {
+    id:10, section:2,
+    tag:"SELF-IMAGE · YOUR DEEPEST FEAR",
+    text:"Deep down, what scares you the most in life?",
+    instruction:"The most honest question in this assessment. Go with your gut — do not filter.",
+    options:{
+      A:"Being ordinary. Leaving no mark. Having lived without real impact.",
+      B:"Being forgotten. Losing the people and connections that make life meaningful.",
+      C:"Losing stability. Not being able to provide safety for my family.",
+      D:"Making a serious mistake I could have prevented if I had been more careful."
+    }
+  },
+  {
+    id:11, section:3,
+    tag:"BUSINESS INSTINCT · A SLOW MONTH",
+    text:"Your business has a slow month — fewer enquiries, less revenue. What goes through your mind first?",
+    instruction:"Your first reaction — not your plan — is what we are looking at.",
+    options:{
+      A:"Anger at myself — then immediate action. I will not wait for things to improve.",
+      B:"Worry — then I reach out to people in my network to find what I am missing.",
+      C:"Anxiety — but I hold steady and trust that things will stabilise.",
+      D:"I go through my data to figure out exactly where the drop came from."
+    }
+  },
+  {
+    id:12, section:3,
+    tag:"PEOPLE & RELATIONSHIPS · MEETING SOMEONE IMPRESSIVE",
+    text:"You meet someone impressive at a business event — smarter and more successful than you. What do you feel?",
+    instruction:"Your emotional reaction reveals your inner world.",
+    options:{
+      A:"Competitive energy — I want to reach their level or surpass them.",
+      B:"Genuine excitement — I want to connect with them and learn their story.",
+      C:"Warmth and respect — I admire them without feeling threatened.",
+      D:"Curiosity — I want to understand exactly how they built what they built."
+    }
+  },
+  {
+    id:13, section:3,
+    tag:"LEARNING & GROWTH · MAKING A MISTAKE",
+    text:"You make a significant mistake in your business — a bad decision that costs you money or a client. How do you process it?",
+    instruction:"This is about emotional recovery, not strategy.",
+    options:{
+      A:"I move on fast — I feel it briefly, then I am already on the next move.",
+      B:"I talk about it with someone I trust — getting it out helps me heal.",
+      C:"I carry it quietly for a while — it takes time for me to let things go.",
+      D:"I analyse it thoroughly — I need to understand every factor before I can move on."
+    }
+  },
+  {
+    id:14, section:3,
+    tag:"DAILY LIFE · LEARNING STYLE",
+    text:"You want to learn something new for your business. What feels most natural?",
+    instruction:"How you learn reflects how you think.",
+    options:{
+      A:"Watch a short video, pick the key insight, and try it immediately.",
+      B:"Join a live session or community — learning is better with others.",
+      C:"Go through a full course at my own pace, no rush.",
+      D:"Read articles, take notes, cross-reference — I want depth, not just surface."
+    }
+  },
+  {
+    id:15, section:3,
+    tag:"CONFLICT · SAYING NO",
+    text:"A client asks for something outside your scope — extra work, no extra pay. What do you do?",
+    instruction:"This reveals how you protect your boundaries.",
+    options:{
+      A:"I say no clearly and immediately — my time and energy are non-negotiable.",
+      B:"I try to redirect warmly — I want them happy but I also want to keep the relationship.",
+      C:"I likely do it this time — I hate disappointing someone I care about.",
+      D:"I check my agreement and communicate my policy clearly and professionally."
+    }
+  },
+  {
+    id:16, section:4,
+    tag:"BUSINESS INSTINCT · SPOTTING A GAP",
+    text:"You notice a gap in the market — something nobody in your area is doing well. What happens next?",
+    instruction:"Do you act, talk, wait, or plan?",
+    options:{
+      A:"I am already mentally calculating how to enter that market as fast as possible.",
+      B:"I get excited and start telling people — testing the idea out loud.",
+      C:"I observe it carefully for a while before deciding to do anything.",
+      D:"I research it systematically — competition, margins, demand — before I commit."
+    }
+  },
+  {
+    id:17, section:4,
+    tag:"SELF-IMAGE · BEING PRAISED",
+    text:"Someone publicly praises your work in a group setting. How do you feel inside?",
+    instruction:"Your relationship with recognition is deeply personal.",
+    options:{
+      A:"Good — but only if the results actually earned it. Empty praise means nothing.",
+      B:"Genuinely happy — I love being acknowledged and I will return the energy.",
+      C:"Grateful but a little uncomfortable — I prefer private appreciation.",
+      D:"Pleased, but I immediately wonder if it is accurate and well-founded."
+    }
+  },
+  {
+    id:18, section:4,
+    tag:"MONEY & RISK · A BIG INVESTMENT",
+    text:"You are considering spending Rs. 50,000 on a business tool or course. You are not 100% sure it will work. What do you do?",
+    instruction:"Notice what you feel, not just what you calculate.",
+    options:{
+      A:"If it could accelerate results, I pay and move — hesitation is the real cost.",
+      B:"I ask people who have tried it, get their vibe, then decide based on trust.",
+      C:"I wait until I feel more certain — I do not like financial uncertainty.",
+      D:"I research reviews, ROI data, and alternatives before committing."
+    }
+  },
+  {
+    id:19, section:4,
+    tag:"PEOPLE & RELATIONSHIPS · LEADING A GROUP",
+    text:"You are part of a group project and nobody is stepping up to lead. What do you do?",
+    instruction:"Leadership instinct shows up without thinking.",
+    options:{
+      A:"I naturally step in and start directing — someone has to do it.",
+      B:"I start energising the group, get everyone talking and motivated.",
+      C:"I support whoever is willing to lead — I work well in the background.",
+      D:"I suggest a clear process and structure before anyone moves."
+    }
+  },
+  {
+    id:20, section:4,
+    tag:"BUSINESS INSTINCT · YOUR ENDGAME",
+    text:"Five years from now — your business is going well. Close your eyes. What does that picture actually look like?",
+    instruction:"This is about your heart, not your strategy. What truly matters to you?",
+    options:{
+      A:"I am the dominant player in my space. People know my name and respect what I built.",
+      B:"I have a community of people whose lives I have genuinely changed. They love what I do.",
+      C:"My family is secure, my business is stable, and I sleep well at night.",
+      D:"Everything runs like clockwork — my systems are so good the business almost runs itself."
+    }
+  },
+];
+
+const DISC_PROFILES = {
+  D: {
+    letter:"D", name:"Dominant", nickname:"The Fire Starter",
+    color:"#c94c4c", dimColor:"rgba(201,76,76,0.12)",
+    edge:"You take action when others are still thinking. That gap between decision and execution is your advantage over 90% of entrepreneurs.",
+    pattern:"You carry urgency like oxygen. Slowing down feels like dying. You process pain quickly and move on — sometimes too quickly to learn from it.",
+    watch:"You move so fast that you sometimes break trust — with your team, your clients, and yourself. Your biggest enemy is not the market. It is the version of you that burns bridges while building empires.",
+    prescription:"Your weapon is boldness — but boldness without consistency is just noise. Pick one offer, one audience, one message. Do it every single day for 90 days. Tamil Business Tribe will help you build the system that matches your speed without losing your people."
+  },
+  I: {
+    letter:"I", name:"Influential", nickname:"The Heartbeat",
+    color:"#c9a84c", dimColor:"rgba(201,168,76,0.12)",
+    edge:"You can build audiences that competitors cannot buy with money. Loyalty follows your energy, your warmth, and your story.",
+    pattern:"You think out loud. Connection charges you completely. Loneliness drains you faster than anything else. You feel everything — highs and lows — more intensely than most.",
+    watch:"You start ten things and finish three. Your emotional highs and lows affect your business consistency in ways you may not realise. The clients who love you most are often waiting on follow-ups you forgot about.",
+    prescription:"Your weapon is storytelling — but stories need a system behind them. Build one content schedule, one WhatsApp follow-up sequence, and one referral ask you give every happy client. Tamil Business Tribe will help you systematise what you already do naturally."
+  },
+  S: {
+    letter:"S", name:"Steady", nickname:"The Quiet Root",
+    color:"#4cad7a", dimColor:"rgba(76,173,122,0.12)",
+    edge:"Client retention is your superpower. People stay with you for years because they trust you at a level that goes beyond the product or service.",
+    pattern:"You carry other people's weight quietly and without complaint. Peace matters to you more than most people around you realise. You recover slowly from disappointment.",
+    watch:"You are likely underpricing yourself and over-delivering without being asked. You say yes when you mean no. You wait to be invited when you should be leading.",
+    prescription:"Your weapon is referrals — but you need to ask for them out loud. Set a rule: after every positive client interaction, ask for one referral. Just one. Tamil Business Tribe will help you build the confidence and the script to ask without feeling like you are imposing."
+  },
+  C: {
+    letter:"C", name:"Conscientious", nickname:"The Architect",
+    color:"#4c82c9", dimColor:"rgba(76,130,201,0.12)",
+    edge:"You build things that actually work. No corners cut, no promises broken, no shortcuts that come back to hurt you later.",
+    pattern:"You need to understand things fully before you can trust them. That depth is both your greatest gift and your most persistent barrier. You are harder on yourself than anyone else ever is.",
+    watch:"You are probably sitting on ideas, products, or offers that are 80% ready but have not launched because they are not 100% perfect yet. Perfection is procrastination wearing a professional mask.",
+    prescription:"Your weapon is authority content — detailed, accurate, educational posts that make people trust you before they ever meet you. But set one rule: if something is 70% ready, it launches. Tamil Business Tribe will push you to execute, not just plan."
+  }
+};
+
+/* ═════════════════════════════════════════════
+   STATE
+═════════════════════════════════════════════ */
+let currentQ = 0;
+let answers = {}; // {qId: {answer:'A', reflection:''}}
+let userData = {};
+let submissions = [];
+
+/* Demo data */
+const DEMO_SUBMISSIONS = [
+  { id:'SUB001', name:'Arjun Kumar', city:'Chennai', biz:'Digital Agency', date:'06 May 2026', scores:{D:9,I:5,S:3,C:3}, answers:{}, complete:true },
+  { id:'SUB002', name:'Priya Rajan', city:'Madurai', biz:'Priya Studios', date:'05 May 2026', scores:{D:2,I:7,S:6,C:5}, answers:{}, complete:true },
+  { id:'SUB003', name:'Karthik Selvam', city:'Coimbatore', biz:'Karthik Consulting', date:'05 May 2026', scores:{D:3,I:4,S:8,C:5}, answers:{}, complete:true },
+  { id:'SUB004', name:'Meena Sundaram', city:'Chennai', biz:'MeenaFit', date:'04 May 2026', scores:{D:2,I:3,S:4,C:11}, answers:{}, complete:true },
+  { id:'SUB005', name:'Suresh Babu', city:'Trichy', biz:'TechSpark', date:'04 May 2026', scores:{D:6,I:8,S:2,C:4}, answers:{}, complete:true },
+  { id:'SUB006', name:'Lakshmi Nair', city:'Salem', biz:'Lakshmi Crafts', date:'03 May 2026', scores:{D:1,I:5,S:9,C:5}, answers:{}, complete:true },
+];
+submissions = [...DEMO_SUBMISSIONS];
+
+/* ═════════════════════════════════════════════
+   ASSESSMENT FLOW
+═════════════════════════════════════════════ */
+function startAssessment() {
+  const name = document.getElementById('in_name').value.trim();
+  if (!name) { document.getElementById('in_name').focus(); document.getElementById('in_name').style.borderColor='var(--red)'; return; }
+  userData = {
+    name, city: document.getElementById('in_city').value.trim(),
+    biz: document.getElementById('in_biz').value.trim(),
+    date: document.getElementById('in_date').value || new Date().toLocaleDateString('en-GB')
+  };
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('questionScreen').style.display = 'flex';
+  currentQ = 0;
+  answers = {};
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  const section = SECTIONS.find(s => q.section === s.range[0] <= q.section && q.section <= s.range[1] ? true : q.section === s.range[0] ? true : (q.section >= s.range[0] && q.section <= s.range[1]));
+  const secObj = SECTIONS[q.section-1];
+
+  // Check if first of section
+  const isFirstOfSection = SECTIONS.some(s => s.range[0] === q.id);
+
+  const qc = document.getElementById('questionContent');
+  let html = '';
+
+  if (isFirstOfSection) {
+    const secIndex = SECTIONS.findIndex(s => s.range[0] === q.id);
+    const sLabels = ['①','②','③','④'];
+    html += `<div class="section-divider">
+      <div class="sd-icon">${sLabels[secIndex]}</div>
+      <div>
+        <div class="sd-label">Now entering</div>
+        <div class="sd-title">${SECTIONS[secIndex].label}</div>
+        <div class="sd-desc">Questions ${SECTIONS[secIndex].range[0]}–${SECTIONS[secIndex].range[1]}</div>
+      </div>
+    </div>`;
+  }
+
+  const saved = answers[q.id] || {};
+  const optHtml = Object.entries(q.options).map(([letter, text]) =>
+    `<button class="option-btn ${saved.answer===letter?'selected':''}" onclick="selectOption(${q.id},'${letter}',this)" data-letter="${letter}">
+      <div class="option-letter">${letter}</div>
+      <div class="option-text">${text}</div>
+    </button>`
+  ).join('');
+
+  html += `<div class="question-wrap" id="qwrap">
+    <div class="q-section-tag"><span class="q-section-dot"></span>${q.tag}</div>
+    <div class="q-number">Question ${q.id} of 20</div>
+    <div class="q-text">${q.text}</div>
+    <div class="q-instruction">${q.instruction}</div>
+    <div class="options-grid">${optHtml}</div>
+    <div class="reflection-wrap">
+      <label class="reflection-label">What this made me think about… (optional)</label>
+      <textarea class="reflection-input" id="refInput" placeholder="Write your thoughts here…" rows="2">${saved.reflection||''}</textarea>
+    </div>
+    <div class="q-nav">
+      ${currentQ > 0 ? '<button class="q-back" onclick="prevQuestion()">← Back</button>' : ''}
+      <button class="q-next" id="nextBtn" onclick="nextQuestion()" ${saved.answer?'':'disabled'}>
+        ${currentQ < 19 ? 'Next Question →' : 'See My Results →'}
+      </button>
+    </div>
+  </div>`;
+
+  qc.innerHTML = html;
+
+  // Update progress
+  const pct = Math.round(((currentQ) / 20) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('qCounter').textContent = `${q.id} / 20`;
+
+  const secLabel = SECTIONS.find(s => q.id >= s.range[0] && q.id <= s.range[1]);
+  document.getElementById('sectionLabel').textContent = secLabel ? `Section ${q.section}` : '';
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function selectOption(qId, letter, btn) {
+  const ref = document.getElementById('refInput');
+  answers[qId] = { answer: letter, reflection: ref ? ref.value : '' };
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function nextQuestion() {
+  const ref = document.getElementById('refInput');
+  if (ref && answers[QUESTIONS[currentQ].id]) {
+    answers[QUESTIONS[currentQ].id].reflection = ref.value;
+  }
+  if (currentQ < 19) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function prevQuestion() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+/* ═════════════════════════════════════════════
+   RESULTS
+═════════════════════════════════════════════ */
+function computeScores() {
+  const scores = {D:0, I:0, S:0, C:0};
+  Object.values(answers).forEach(a => {
+    if (a.answer === 'A') scores.D++;
+    if (a.answer === 'B') scores.I++;
+    if (a.answer === 'C') scores.S++;
+    if (a.answer === 'D') scores.C++;
+  });
+  return scores;
+}
+
+function dominantType(scores) {
+  return Object.entries(scores).sort((a,b) => b[1]-a[1])[0][0];
+}
+
+function showResults() {
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('questionScreen').style.display = 'none';
+  const rs = document.getElementById('resultsScreen');
+  rs.style.display = 'block';
+
+  const scores = computeScores();
+  const dominant = dominantType(scores);
+  const profile = DISC_PROFILES[dominant];
+
+  document.getElementById('resultsUserName').textContent = `Here is what your answers reveal about you, ${userData.name}.`;
+
+  // Score cards
+  const scColors = {D:DISC_PROFILES.D.color, I:DISC_PROFILES.I.color, S:DISC_PROFILES.S.color, C:DISC_PROFILES.C.color};
+  const scNames = {D:'Dominant · Fire Starter', I:'Influential · Heartbeat', S:'Steady · Quiet Root', C:'Conscientious · Architect'};
+  let scHtml = '';
+  ['D','I','S','C'].forEach(k => {
+    const pct = Math.round((scores[k]/20)*100);
+    const isDom = k === dominant;
+    scHtml += `<div class="score-card ${isDom?'dominant':''}">
+      <div class="sc-top">
+        <div class="sc-name" style="color:${scColors[k]}">${k}</div>
+        <div class="sc-count" style="color:${scColors[k]}">${scores[k]}</div>
+      </div>
+      <div class="sc-sub">${scNames[k]}</div>
+      <div class="sc-bar-track"><div class="sc-bar-fill" style="width:${pct}%;background:${scColors[k]}"></div></div>
+      <div class="sc-pct">${pct}%</div>
+    </div>`;
+  });
+  document.getElementById('scoresGrid').innerHTML = scHtml;
+
+  // Dominant profile
+  document.getElementById('dominantProfileCard').innerHTML = `
+    <div class="dominant-profile">
+      <div class="dp-header">
+        <div class="dp-badge" style="background:${profile.dimColor};color:${profile.color}">
+          ${profile.letter}
+        </div>
+        <div>
+          <div class="dp-title">${profile.letter} — ${profile.nickname}</div>
+          <div class="dp-nickname">${profile.name} Profile · ${scores[dominant]} / 20 · ${Math.round(scores[dominant]/20*100)}%</div>
+        </div>
+      </div>
+      <div class="dp-body">
+        <div class="dp-section">
+          <div class="dp-section-label">Your Business Edge</div>
+          <p>${profile.edge}</p>
+        </div>
+        <div class="dp-section">
+          <div class="dp-section-label">Mental Pattern</div>
+          <p>${profile.pattern}</p>
+        </div>
+        <div class="dp-section">
+          <div class="dp-section-label">Watch This</div>
+          <p>${profile.watch}</p>
+        </div>
+        <div class="dp-prescription">
+          <div class="dp-prescription-label">Your Zero Rupee Marketing Prescription</div>
+          <p>${profile.prescription}</p>
+        </div>
+      </div>
+    </div>`;
+
+  // Save to submissions
+  const sub = {
+    id: 'SUB' + String(Date.now()).slice(-4),
+    name: userData.name,
+    city: userData.city || '—',
+    biz: userData.biz || '—',
+    date: new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}),
+    scores,
+    answers: {...answers},
+    complete: true
+  };
+  submissions.unshift(sub);
+  renderAdminData();
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function restartAssessment() {
+  answers = {}; currentQ = 0;
+  document.getElementById('resultsScreen').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+}
+
+/* ═════════════════════════════════════════════
+   ADMIN
+═════════════════════════════════════════════ */
+function switchToAdmin() {
+  document.getElementById('formView').classList.remove('active');
+  document.getElementById('adminView').classList.add('active');
+  renderAdminData();
+}
+
+function switchToForm() {
+  document.getElementById('adminView').classList.remove('active');
+  document.getElementById('formView').classList.add('active');
+}
+
+function adminNav(el, pageId) {
+  document.querySelectorAll('.as-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+
+  if (pageId === 'questionsPage') renderQuestionsPage();
+  if (pageId === 'interpPage') renderInterpPage();
+  if (pageId === 'responsesPage') renderResponsesTable(submissions);
+}
+
+function renderAdminData() {
+  const total = submissions.length;
+  const complete = submissions.filter(s=>s.complete).length;
+  const dom = {D:0,I:0,S:0,C:0};
+  submissions.forEach(s => { const d = dominantType(s.scores); dom[d]++; });
+
+  // Stats
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card gold-border">
+      <div class="stat-val">${total}</div>
+      <div class="stat-label">Total Submissions</div>
+      <div class="stat-sub">+1 from live form</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${complete}</div>
+      <div class="stat-label">Complete</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${Object.entries(dom).sort((a,b)=>b[1]-a[1])[0][0]}</div>
+      <div class="stat-label">Most Common Type</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${total > 0 ? Math.round((complete/total)*100) : 0}%</div>
+      <div class="stat-label">Completion Rate</div>
+    </div>
+  `;
+
+  // DISC dist
+  const discColors = {D:'#c94c4c',I:'#c9a84c',S:'#4cad7a',C:'#4c82c9'};
+  const discNames = {D:'Fire Starter',I:'Heartbeat',S:'Quiet Root',C:'Architect'};
+  let ddHtml = '';
+  ['D','I','S','C'].forEach(k => {
+    const count = dom[k];
+    const pct = total > 0 ? Math.round((count/total)*100) : 0;
+    ddHtml += `<div class="disc-dist-card">
+      <div class="ddc-letter" style="color:${discColors[k]}">${k}</div>
+      <div class="ddc-name">${discNames[k]}</div>
+      <div class="ddc-count">${count}</div>
+      <div class="ddc-bar-track"><div class="ddc-bar-fill" style="width:${pct}%;background:${discColors[k]}"></div></div>
+      <div style="font-size:10px;color:var(--txt3);margin-top:4px">${pct}%</div>
+    </div>`;
+  });
+  document.getElementById('discDist').innerHTML = ddHtml;
+
+  // Recent table
+  const recent = submissions.slice(0,5);
+  document.getElementById('recentTableBody').innerHTML = recent.map(s => buildTableRow(s)).join('');
+  document.getElementById('sidebarCount').textContent = submissions.length;
+
+  renderResponsesTable(submissions);
+}
+
+function buildTableRow(s) {
+  const dom = dominantType(s.scores);
+  const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  return `<tr>
+    <td>
+      <div class="user-cell">
+        <div class="user-av ${dom}">${initials}</div>
+        <div>
+          <div class="user-name">${s.name}</div>
+          <div class="user-biz">${s.biz || '—'}</div>
+        </div>
+      </div>
+    </td>
+    <td><span class="disc-badge ${dom}">${dom} — ${DISC_PROFILES[dom].nickname}</span></td>
+    <td>
+      <div class="score-pills">
+        <div class="score-pip" style="background:#c94c4c" title="D">${s.scores.D}</div>
+        <div class="score-pip" style="background:#c9a84c" title="I">${s.scores.I}</div>
+        <div class="score-pip" style="background:#4cad7a" title="S">${s.scores.S}</div>
+        <div class="score-pip" style="background:#4c82c9" title="C">${s.scores.C}</div>
+      </div>
+    </td>
+    <td>${s.date}</td>
+    <td>
+      <div class="action-icons">
+        <div class="icon-btn" onclick='openDrawer(${JSON.stringify(s)})' title="View detail">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        </div>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderResponsesTable(data) {
+  document.getElementById('allResponsesBody').innerHTML = data.map((s,i) => {
+    const dom = dominantType(s.scores);
+    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<tr>
+      <td style="color:var(--txt3);font-size:11px">${i+1}</td>
+      <td>
+        <div class="user-cell">
+          <div class="user-av ${dom}">${initials}</div>
+          <div>
+            <div class="user-name">${s.name}</div>
+            <div class="user-biz">${s.biz||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td>${s.city||'—'}</td>
+      <td><span class="disc-badge ${dom}">${dom}</span></td>
+      <td style="font-size:12px;color:#c94c4c;font-weight:600">${s.scores.D}</td>
+      <td style="font-size:12px;color:#c9a84c;font-weight:600">${s.scores.I}</td>
+      <td style="font-size:12px;color:#4cad7a;font-weight:600">${s.scores.S}</td>
+      <td style="font-size:12px;color:#4c82c9;font-weight:600">${s.scores.C}</td>
+      <td><span class="status-dot complete"></span>Complete</td>
+      <td style="font-size:11px;color:var(--txt3)">${s.date}</td>
+      <td>
+        <div class="icon-btn" onclick='openDrawer(${JSON.stringify(s).replace(/'/g,"&#39;")})'>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterResponses(val) {
+  const v = val.toLowerCase();
+  const filtered = submissions.filter(s =>
+    s.name.toLowerCase().includes(v) || (s.city||'').toLowerCase().includes(v) || (s.biz||'').toLowerCase().includes(v)
+  );
+  const discF = document.getElementById('discFilter').value;
+  renderResponsesTable(filtered.filter(s => !discF || dominantType(s.scores)===discF));
+}
+
+function filterByDisc(val) {
+  const q = (document.querySelector('#responsesPage .filter-input')?.value||'').toLowerCase();
+  let filtered = submissions.filter(s => s.name.toLowerCase().includes(q) || (s.city||'').toLowerCase().includes(q));
+  if (val) filtered = filtered.filter(s => dominantType(s.scores)===val);
+  renderResponsesTable(filtered);
+}
+
+function exportCSV() {
+  const rows = [['ID','Name','City','Business','Dominant','D','I','S','C','Date']];
+  submissions.forEach(s => {
+    rows.push([s.id, s.name, s.city||'', s.biz||'', dominantType(s.scores), s.scores.D, s.scores.I, s.scores.S, s.scores.C, s.date]);
+  });
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'tbt_disc_results.csv';
+  a.click();
+}
+
+/* ═════════════════════════════════════════════
+   DRAWER
+═════════════════════════════════════════════ */
+function openDrawer(s) {
+  if (typeof s === 'string') s = JSON.parse(s);
+  const dom = dominantType(s.scores);
+  const profile = DISC_PROFILES[dom];
+  const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const discColors = {D:'#c94c4c',I:'#c9a84c',S:'#4cad7a',C:'#4c82c9'};
+  const discDim = {D:'rgba(201,76,76,0.12)',I:'rgba(201,168,76,0.12)',S:'rgba(76,173,122,0.12)',C:'rgba(76,130,201,0.12)'};
+
+  // Score bars
+  const scoreBars = ['D','I','S','C'].map(k => {
+    const pct = Math.round((s.scores[k]/20)*100);
+    return `<div class="drawer-score-row">
+      <div class="dsr-top">
+        <div class="dsr-label" style="color:${discColors[k]}">${k} — ${DISC_PROFILES[k].nickname}</div>
+        <div class="dsr-val" style="color:${discColors[k]}">${s.scores[k]} / 20</div>
+      </div>
+      <div class="dsr-sub">${pct}%</div>
+      <div class="dsr-track"><div class="dsr-fill" style="width:${pct}%;background:${discColors[k]}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Q&A log (only if we have answers)
+  let qaHtml = '';
+  if (s.answers && Object.keys(s.answers).length > 0) {
+    qaHtml = `<div class="drawer-section-label">Answer Log</div>`;
+    QUESTIONS.forEach(q => {
+      const a = s.answers[q.id];
+      if (!a) return;
+      const letter = a.answer;
+      const letterColor = {A:'#c94c4c',B:'#c9a84c',C:'#4cad7a',D:'#4c82c9'}[letter];
+      qaHtml += `<div class="qa-item">
+        <div class="qa-q">Q${q.id}. ${q.text.slice(0,60)}…</div>
+        <div class="qa-a">
+          <div class="qa-letter" style="background:${letterColor}">${letter}</div>
+          <span>${q.options[letter]}</span>
+        </div>
+        ${a.reflection ? `<div class="qa-reflection">${a.reflection}</div>` : ''}
+      </div>`;
+    });
+  } else {
+    qaHtml = `<div class="drawer-section-label">Answer Log</div><p style="font-size:12px;color:var(--txt3);padding:8px 0">No detailed answer log available for demo data.</p>`;
+  }
+
+  document.getElementById('drawerContent').innerHTML = `
+    <div class="du-header" style="position:relative">
+      <div class="du-avatar" style="background:${discDim[dom]};color:${discColors[dom]}">${initials}</div>
+      <div>
+        <div class="du-name">${s.name}</div>
+        <div class="du-meta">${s.biz||'—'} · ${s.city||'—'}<br>Submitted: ${s.date}</div>
+      </div>
+    </div>
+
+    <div class="drawer-section-label">DISC Scores</div>
+    <div class="drawer-scores">${scoreBars}</div>
+
+    <div class="drawer-section-label">Dominant Profile</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:${profile.color};margin-bottom:6px">${dom} — ${profile.nickname}</div>
+      <div style="font-size:12px;color:var(--txt2);line-height:1.7">${profile.edge}</div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;font-weight:600">Prescription</div>
+        <div style="font-size:12px;color:var(--txt3);line-height:1.7;font-style:italic">${profile.prescription}</div>
+      </div>
+    </div>
+
+    ${qaHtml}
+  `;
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeDrawer(e) {
+  if (e.target === document.getElementById('detailModal')) closeDrawerBtn();
+}
+function closeDrawerBtn() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+/* ═════════════════════════════════════════════
+   QUESTIONS PAGE
+═════════════════════════════════════════════ */
+function renderQuestionsPage() {
+  const discMap = {A:'D (Dominant)',B:'I (Influential)',C:'S (Steady)',D:'C (Conscientious)'};
+  const discColors = {A:'A',B:'B',C:'C',D:'D'};
+  const html = QUESTIONS.map(q => `
+    <div class="qm-card">
+      <div class="qm-num">${q.id}</div>
+      <div class="qm-body">
+        <div class="qm-section-tag">${q.tag}</div>
+        <div class="qm-q">${q.text}</div>
+        <div class="qm-options">
+          <span class="qm-opt A">A → ${discMap.A}</span>
+          <span class="qm-opt B">B → ${discMap.B}</span>
+          <span class="qm-opt C">C → ${discMap.C}</span>
+          <span class="qm-opt D">D → ${discMap.D}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('qmList').innerHTML = html;
+}
+
+/* ═════════════════════════════════════════════
+   INTERPRETATIONS PAGE
+═════════════════════════════════════════════ */
+function renderInterpPage() {
+  const discColors = {D:'#c94c4c',I:'#c9a84c',S:'#4cad7a',C:'#4c82c9'};
+  const discDim = {D:'rgba(201,76,76,0.12)',I:'rgba(201,168,76,0.12)',S:'rgba(76,173,122,0.12)',C:'rgba(76,130,201,0.12)'};
+  const html = ['D','I','S','C'].map(k => {
+    const p = DISC_PROFILES[k];
+    return `<div class="interp-card">
+      <div class="interp-header">
+        <div class="interp-letter" style="background:${discDim[k]};color:${discColors[k]}">${k}</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:${discColors[k]}">${k} — ${p.nickname}</div>
+          <div style="font-size:11px;color:var(--txt3)">${p.name} Profile</div>
+        </div>
+      </div>
+      <div class="interp-body">
+        <div class="interp-row">
+          <div class="interp-row-label">Business Edge</div>
+          <div class="interp-row-text">${p.edge}</div>
+        </div>
+        <div class="interp-row">
+          <div class="interp-row-label">Mental Pattern</div>
+          <div class="interp-row-text">${p.pattern}</div>
+        </div>
+        <div class="interp-row">
+          <div class="interp-row-label">Watch This</div>
+          <div class="interp-row-text">${p.watch}</div>
+        </div>
+        <div class="interp-row">
+          <div class="interp-row-label">Zero Rupee Marketing Prescription</div>
+          <div class="interp-row-text">${p.prescription}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('interpList').innerHTML = html;
+}
+
+/* ═════════════════════════════════════════════
+   INIT
+═════════════════════════════════════════════ */
+document.getElementById('in_date').value = new Date().toISOString().split('T')[0];
+renderAdminData();
+</script>
+</body>
+</html>

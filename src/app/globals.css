@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: var(--font-playfair), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  --color-bg: #000000;
+  --color-surface: #0a0a0a;
+  --color-card: #121212;
+  --color-card2: #1a1a1a;
+  --color-border: #222222;
+  --color-border2: #333333;
+  
+  /* TBT Red Branding */
+  --color-tbt-red: #cc0000;
+  --color-tbt-red-hover: #e60000;
+  --color-tbt-red-dim: rgba(204, 0, 0, 0.08);
+  --color-tbt-red-border: rgba(204, 0, 0, 0.2);
+
+  --color-gold: #c9a84c;
+  --color-gold-hover: #e8c97a;
+  --color-gold-dim: rgba(201,168,76,0.08);
+  --color-gold-border: rgba(201,168,76,0.2);
+
+  --color-green-primary: #4cad7a;
+  --color-green-dim: rgba(76,173,122,0.08);
+  --color-green-border: rgba(76,173,122,0.2);
+
+  --color-blue-primary: #4c82c9;
+  --color-blue-dim: rgba(76,130,201,0.08);
+
+  --color-amber-primary: #c97d4c;
+  --color-amber-dim: rgba(201,125,76,0.08);
+
+  --color-txt: #ffffff;
+  --color-txt2: #a1a1a1;
+  --color-txt3: #71717a;
+
+  --color-disc-d: #cc0000;
+  --color-disc-i: #c9a84c;
+  --color-disc-s: #4cad7a;
+  --color-disc-c: #4c82c9;
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideLeft {
+    from { transform: translateX(30px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.1); }
+  }
+
+  --animate-fade-down: fadeDown 0.6s ease both;
+  --animate-fade-up: fadeUp 0.7s ease both;
+  --animate-slide-left: slideLeft 0.25s ease both;
+  --animate-pulse-slow: pulse-slow 8s infinite ease-in-out;
+}
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  color: var(--color-txt);
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Grain texture overlay */
+.grain::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 10;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.25;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-premium {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+.glass-card {
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: rgba(30, 30, 30, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Background Gradients */
+.bg-glow-red {
+  background: radial-gradient(circle at center, rgba(204, 0, 0, 0.15) 0%, transparent 70%);
+}
+
+.bg-glow-gold {
+  background: radial-gradient(circle at center, rgba(201, 168, 76, 0.1) 0%, transparent 70%);
+}
+
+/* Text Mask */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #c9a84c 0%, #f1d279 50%, #c9a84c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-red {
+  background: linear-gradient(135deg, #cc0000 0%, #ff3333 50%, #cc0000 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
