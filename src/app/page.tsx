@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Landing from "@/components/assessment/Landing";
+import IntroScreen from "@/components/assessment/IntroScreen";
 import Questionnaire from "@/components/assessment/Questionnaire";
 import Results from "@/components/assessment/Results";
 import { UserData, Answer } from "@/types";
@@ -10,7 +11,7 @@ import { saveAssessmentResult } from "@/actions/assessment";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Step = "landing" | "questionnaire" | "results";
+type Step = "landing" | "intro" | "questionnaire" | "results";
 
 const STORAGE_KEY = "tbt_assessment_session";
 
@@ -52,8 +53,12 @@ export default function Home() {
 
   const handleStart = (data: UserData) => {
     setUserData(data);
-    setStep("questionnaire");
+    setStep("intro");
     setCurrentIdx(0);
+  };
+
+  const handleIntroComplete = () => {
+    setStep("questionnaire");
   };
 
   const handleComplete = async (finalAnswers: Record<number, Answer>) => {
@@ -108,6 +113,7 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           {step === "landing" && <Landing onStart={handleStart} />}
+          {step === "intro" && <IntroScreen onComplete={handleIntroComplete} />}
           {step === "questionnaire" && (
             <Questionnaire 
               currentIdx={currentIdx}

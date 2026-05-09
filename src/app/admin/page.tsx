@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
@@ -37,11 +38,17 @@ export default function AdminLogin() {
       >
         <div className="text-center mb-10 md:mb-14">
           <motion.div 
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="w-14 h-14 md:w-16 md:h-16 bg-gold rounded-2xl flex items-center justify-center font-serif text-2xl md:text-3xl font-black text-bg mx-auto mb-6 shadow-xl shadow-gold/20"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-32 h-14 md:w-40 md:h-16 relative mx-auto mb-6"
           >
-            T
+            <Image 
+              src="/logo.png" 
+              alt="TBT Logo" 
+              fill 
+              className="object-contain"
+              priority
+            />
           </motion.div>
           <h1 className="font-serif text-3xl md:text-4xl font-black text-txt mb-2 tracking-tight">Admin Portal</h1>
           <p className="text-[10px] md:text-xs text-txt3 uppercase tracking-[0.3em] font-bold opacity-60">
