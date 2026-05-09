@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Landing from "@/components/assessment/Landing";
 import Questionnaire from "@/components/assessment/Questionnaire";
 import Results from "@/components/assessment/Results";
@@ -12,14 +12,48 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type Step = "landing" | "questionnaire" | "results";
 
+const STORAGE_KEY = "tbt_assessment_session";
+
 export default function Home() {
   const [step, setStep] = useState<Step>("landing");
   const [userData, setUserData] = useState<UserData | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [isLoaded, setIsLoading] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const { step, userData, answers, currentIdx } = JSON.parse(saved);
+        setStep(step);
+        setUserData(userData);
+        setAnswers(answers);
+        setCurrentIdx(currentIdx || 0);
+      } catch (e) {
+        console.error("Failed to parse saved session", e);
+      }
+    }
+    setIsLoading(true);
+  }, []);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        step,
+        userData,
+        answers,
+        currentIdx
+      }));
+    }
+  }, [step, userData, answers, currentIdx, isLoaded]);
 
   const handleStart = (data: UserData) => {
     setUserData(data);
     setStep("questionnaire");
+    setCurrentIdx(0);
   };
 
   const handleComplete = async (finalAnswers: Record<number, Answer>) => {
@@ -29,13 +63,19 @@ export default function Home() {
     if (userData) {
       await saveAssessmentResult(userData, finalAnswers);
     }
+    // Clear storage on completion? Maybe keep for results viewing, 
+    // but handleRestart will clear it anyway.
   };
 
   const handleRestart = () => {
+    localStorage.removeItem(STORAGE_KEY);
     setStep("landing");
     setUserData(null);
     setAnswers({});
+    setCurrentIdx(0);
   };
+
+  if (!isLoaded) return null; // Prevent flash of landing page if resuming
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-bg">
@@ -68,7 +108,15 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           {step === "landing" && <Landing onStart={handleStart} />}
-          {step === "questionnaire" && <Questionnaire onComplete={handleComplete} />}
+          {step === "questionnaire" && (
+            <Questionnaire 
+              currentIdx={currentIdx}
+              setCurrentIdx={setCurrentIdx}
+              answers={answers}
+              setAnswers={setAnswers}
+              onComplete={handleComplete} 
+            />
+          )}
           {step === "results" && userData && (
             <Results
               userData={userData}
