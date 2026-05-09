@@ -50,11 +50,11 @@ export default function Questionnaire({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden">
+      <div className="h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden text-center">
         <div className="absolute inset-0 bg-glow-red opacity-10 blur-[100px]" />
         <Loader2 className="w-8 h-8 text-tbt-red animate-spin mb-4 relative z-10" />
-        <p className="text-[10px] text-txt3 font-black uppercase tracking-[0.2em] relative z-10">
-          Loading...
+        <p className="text-[10px] text-txt3 font-black uppercase tracking-[0.2em] relative z-10 animate-pulse">
+          Initializing DNA Sequence...
         </p>
       </div>
     );
@@ -62,8 +62,8 @@ export default function Questionnaire({
 
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-bg p-4 text-center">
-        <p className="text-txt2 text-sm">No questions found.</p>
+      <div className="h-screen flex flex-col items-center justify-center bg-bg p-4 text-center">
+        <p className="text-txt2 text-sm">No discovery parameters found.</p>
       </div>
     );
   }
@@ -72,9 +72,6 @@ export default function Questionnaire({
   const section = SECTIONS.find(
     (s) => question.id >= s.range[0] && question.id <= s.range[1]
   );
-
-  const isFirstOfSection = SECTIONS.some((s) => s.range[0] === question.id);
-  const sectionIndex = SECTIONS.findIndex((s) => s.range[0] === question.id);
 
   const handleSelect = (letter: "A" | "B" | "C" | "D") => {
     setAnswers((prev) => ({
@@ -85,13 +82,11 @@ export default function Questionnaire({
 
   const handleNext = () => {
     if (!answers[question.id]) return;
-
     const updatedAnswers = {
       ...answers,
       [question.id]: { ...answers[question.id], reflection },
     };
     setAnswers(updatedAnswers);
-
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(currentIdx + 1);
     } else {
@@ -108,107 +103,103 @@ export default function Questionnaire({
   const progress = ((currentIdx + 1) / questions.length) * 100;
 
   return (
-    <div className="h-screen max-h-screen flex flex-col px-4 md:px-8 relative z-1 overflow-hidden bg-bg">
-      {/* Background Glow */}
-      <div className="absolute top-[10%] right-[-5%] w-[40%] h-[40%] bg-glow-gold opacity-[0.03] blur-[100px] -z-10" />
-      
-      {/* Compact Header */}
-      <div className="pt-4 md:pt-6 pb-2">
-        <div className="max-w-[560px] md:max-w-[640px] mx-auto w-full">
-          <div className="flex justify-between items-center mb-2 px-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_rgba(201,168,76,0.6)]" />
-              <span className="text-[10px] text-gold font-black tracking-[0.15em] uppercase">
+    <div className="h-screen max-h-screen flex flex-col relative z-1 overflow-hidden bg-bg font-sans">
+      {/* Background Cinematic Elements */}
+      <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-glow-red opacity-[0.06] blur-[120px] -z-10 animate-pulse-slow" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-glow-red opacity-[0.03] blur-[120px] -z-10" />
+
+      {/* 1. Header Section - Refined and Balanced */}
+      <header className="w-full pt-6 md:pt-8 pb-2 px-6 md:px-12 flex justify-center shrink-0">
+        <div className="w-full max-w-[840px] flex flex-col gap-2">
+          <div className="flex justify-between items-end px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-tbt-red shadow-[0_0_8px_rgba(204,0,0,0.6)] animate-pulse" />
+              <span className="text-[9px] md:text-[10px] text-tbt-red font-black tracking-[0.25em] uppercase opacity-80">
                 {section?.label.split("—")[0]}
               </span>
             </div>
-            <span className="text-[10px] text-txt3 font-bold uppercase tracking-wider">
-              {Math.round(progress)}% Complete
-            </span>
+            <div className="text-right">
+              <span className="text-[9px] md:text-[10px] text-txt2 font-black tracking-widest uppercase">
+                {Math.round(progress)}% <span className="text-txt3 opacity-40 ml-1">Profiled</span>
+              </span>
+            </div>
           </div>
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden shadow-inner">
+          <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden shadow-inner ring-1 ring-white/[0.02]">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              className="h-full bg-gradient-to-r from-gold/40 to-gold rounded-full"
-              transition={{ duration: 0.5 }}
+              className="h-full bg-gradient-to-r from-tbt-red/40 via-tbt-red to-tbt-red/40 rounded-full shadow-[0_0_10px_rgba(204,0,0,0.2)]"
+              transition={{ duration: 0.6, ease: "circOut" }}
             />
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content Area - Optimized for no-scroll on Desktop */}
-      <div className="flex-1 flex flex-col items-center py-2 md:py-4 overflow-hidden">
-        <div className="max-w-[560px] md:max-w-[640px] w-full flex-1 flex flex-col justify-center">
+      {/* 2. Main Content Section - Redesigned for Proportional Balance */}
+      <main className="flex-1 flex flex-col items-center min-h-0 w-full px-6 md:px-12 py-2 md:py-4 lg:py-6 overflow-hidden">
+        <div className="w-full max-w-[840px] flex-1 flex flex-col justify-center min-h-0 relative">
           <AnimatePresence mode="wait">
             <motion.div
               key={question.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col w-full"
             >
-              {isFirstOfSection && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white/[0.03] border border-gold/10 rounded-xl p-3 flex items-center gap-3 mb-4 shadow-sm"
+              {/* Question Meta - Scaled Down */}
+              <div className="flex items-center gap-3 mb-3 md:mb-4 opacity-50">
+                <div className="flex items-center gap-2 text-[8px] text-tbt-red font-black uppercase tracking-[0.2em]">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {question.tag}
+                </div>
+                <div className="w-1 h-1 rounded-full bg-white/20" />
+                <div className="font-serif text-[8px] md:text-[9px] text-txt3 font-bold uppercase tracking-widest">
+                  Inquiry {question.id} of {questions.length}
+                </div>
+              </div>
+
+              {/* Cinematic Heading - Optimized with clamp() and better line-height */}
+              <div className="mb-6 md:mb-8 lg:mb-10 max-w-[760px]">
+                <h2 
+                  className="font-serif font-black text-txt mb-3 md:mb-4 tracking-tight leading-[1.15]"
+                  style={{ fontSize: "clamp(1.4rem, 4.5vh + 0.5rem, 2.6rem)" }}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center font-serif text-lg text-gold shrink-0">
-                    {["I", "II", "III", "IV"][sectionIndex] || "•"}
-                  </div>
-                  <div>
-                    <div className="text-[8px] text-gold/50 font-black uppercase tracking-widest">New Phase</div>
-                    <div className="font-serif text-base font-black text-txt tracking-tight leading-none">
-                      {section?.label}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              <div className="flex items-center gap-2 text-[8px] text-gold/60 font-black uppercase mb-1.5 opacity-60">
-                <Sparkles className="w-3 h-3" />
-                {question.tag}
+                  {question.text}
+                </h2>
+                <p className="text-[11px] md:text-sm lg:text-[15px] text-txt3 font-medium leading-relaxed italic opacity-60 border-l-2 border-tbt-red/20 pl-4 md:pl-6 max-w-[640px]">
+                  {question.instruction}
+                </p>
               </div>
 
-              <div className="font-serif text-[10px] text-txt3 mb-1 font-bold uppercase tracking-widest opacity-40">
-                Question {question.id} of {questions.length}
-              </div>
-
-              <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-black leading-[1.2] text-txt mb-2.5 tracking-tight">
-                {question.text}
-              </h2>
-
-              <p className="text-[11px] md:text-xs text-txt3 font-medium mb-5 md:mb-6 leading-relaxed italic opacity-70">
-                {question.instruction}
-              </p>
-
-              <div className="grid grid-cols-1 gap-2 md:gap-2.5 mb-6 md:mb-8">
+              {/* Premium Option Grid - Balanced Priority */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 lg:gap-5 mb-4">
                 {(Object.entries(question.options) as [("A" | "B" | "C" | "D"), string][]).map(
                   ([letter, text]) => (
                     <motion.button
                       key={letter}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.01, x: 2 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => handleSelect(letter)}
                       className={cn(
-                        "flex items-center gap-4 bg-white/[0.02] border border-white/5 rounded-xl p-3 md:p-4 text-left w-full transition-all duration-200 group relative",
+                        "flex items-center gap-4 md:gap-5 bg-white/[0.012] border border-white/[0.06] rounded-2xl p-4 md:p-5 lg:p-5.5 text-left w-full transition-all duration-300 group relative overflow-hidden",
                         answers[question.id]?.answer === letter &&
-                          "bg-gold/[0.08] border-gold/40 shadow-xl shadow-gold/5 ring-1 ring-gold/10"
+                          "bg-tbt-red/[0.07] border-tbt-red/30 shadow-[0_15px_40px_rgba(204,0,0,0.08)] ring-1 ring-tbt-red/10"
                       )}
                     >
+                      <div className="absolute inset-0 bg-gradient-to-br from-tbt-red/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div
                         className={cn(
-                          "w-7 h-7 md:w-8 md:h-8 rounded-lg border border-white/10 flex items-center justify-center text-xs font-black text-txt3 shrink-0 transition-all font-serif group-hover:border-gold/30",
+                          "w-8 h-8 md:w-9 md:h-9 rounded-xl border border-white/10 flex items-center justify-center text-xs md:text-sm font-black text-txt3 shrink-0 transition-all font-serif group-hover:border-tbt-red/30 relative z-10",
                           answers[question.id]?.answer === letter &&
-                            "bg-gold border-gold text-bg shadow-md"
+                            "bg-tbt-red border-tbt-red text-white shadow-md scale-105"
                         )}
                       >
                         {letter}
                       </div>
                       <div
                         className={cn(
-                          "text-xs md:text-sm lg:text-base text-txt2 font-medium leading-snug transition-colors group-hover:text-txt",
+                          "text-[13px] md:text-[15px] lg:text-[16px] text-txt2 font-medium leading-tight md:leading-snug transition-colors duration-300 group-hover:text-txt relative z-10",
                           answers[question.id]?.answer === letter && "text-txt font-semibold"
                         )}
                       >
@@ -221,34 +212,40 @@ export default function Questionnaire({
             </motion.div>
           </AnimatePresence>
         </div>
-      </div>
+      </main>
 
-      {/* Fixed Bottom Navigation */}
-      <div className="pb-6 md:pb-8 pt-2">
-        <div className="max-w-[560px] md:max-w-[640px] mx-auto w-full">
-          <div className="flex gap-3 items-center">
+      {/* 3. Footer Section - Properly Anchored and Breathable */}
+      <footer className="w-full pb-8 md:pb-10 lg:pb-12 pt-4 px-6 md:px-12 flex justify-center shrink-0 border-t border-white/[0.02] bg-bg/40 backdrop-blur-md">
+        <div className="w-full max-w-[840px]">
+          <div className="flex gap-4 items-center">
             {currentIdx > 0 && (
-              <button
+              <motion.button
+                whileHover={{ x: -3 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleBack}
-                className="h-10 md:h-11 px-5 bg-white/[0.03] border border-white/10 rounded-xl text-txt2 text-[10px] font-black uppercase tracking-widest hover:text-txt transition-colors flex items-center gap-2"
+                className="h-12 md:h-14 px-6 md:px-10 bg-white/[0.02] border border-white/10 rounded-2xl text-txt2 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] hover:text-txt hover:bg-white/[0.04] transition-all duration-300 flex items-center justify-center gap-2 md:gap-3"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
+                <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline tracking-widest">Revisit</span>
+              </motion.button>
             )}
             <motion.button
-              whileTap={answers[question.id] ? { scale: 0.98 } : {}}
+              whileHover={answers[question.id] ? { scale: 1.01, y: -1 } : {}}
+              whileTap={answers[question.id] ? { scale: 0.99 } : {}}
               disabled={!answers[question.id]}
               onClick={handleNext}
-              className="flex-1 h-10 md:h-11 bg-gold hover:bg-gold-hover transition-all rounded-xl text-bg text-[10px] font-black uppercase tracking-widest disabled:opacity-10 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-gold/10 group/next"
+              className="flex-1 h-12 md:h-14 bg-tbt-red hover:bg-tbt-red-hover transition-all duration-500 rounded-2xl text-white text-[10px] md:text-xs font-black uppercase tracking-[0.3em] disabled:opacity-10 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-3 md:gap-4 shadow-[0_10px_30px_rgba(204,0,0,0.1)] group/next relative overflow-hidden"
             >
-              {currentIdx < questions.length - 1
-                ? <>Next Step <ArrowRight className="w-4 h-4 group-hover/next:translate-x-0.5 transition-transform" /></>
-                : <>View Results <ArrowRight className="w-4 h-4 group-hover/next:translate-x-0.5 transition-transform" /></>}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/next:translate-x-full transition-transform duration-1000" />
+              <span className="relative z-10 flex items-center gap-3 tracking-widest">
+                {currentIdx < questions.length - 1
+                  ? <>Advance Sequence <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover/next:translate-x-1 transition-transform" /></>
+                  : <>Generate Profile <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover/next:translate-x-1 transition-transform" /></>}
+              </span>
             </motion.button>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
