@@ -19,7 +19,7 @@ export default function Home() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [isLoaded, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -27,15 +27,15 @@ export default function Home() {
     if (saved) {
       try {
         const { step, userData, answers, currentIdx } = JSON.parse(saved);
-        setStep(step);
-        setUserData(userData);
-        setAnswers(answers);
-        setCurrentIdx(currentIdx || 0);
+        if (step) setStep(step);
+        if (userData) setUserData(userData);
+        if (answers) setAnswers(answers);
+        if (typeof currentIdx === 'number') setCurrentIdx(currentIdx);
       } catch (e) {
         console.error("Failed to parse saved session", e);
       }
     }
-    setIsLoading(true);
+    setIsLoaded(true);
   }, []);
 
   // Save to localStorage on change
@@ -63,8 +63,6 @@ export default function Home() {
     if (userData) {
       await saveAssessmentResult(userData, finalAnswers);
     }
-    // Clear storage on completion? Maybe keep for results viewing, 
-    // but handleRestart will clear it anyway.
   };
 
   const handleRestart = () => {
@@ -75,7 +73,9 @@ export default function Home() {
     setCurrentIdx(0);
   };
 
-  if (!isLoaded) return null; // Prevent flash of landing page if resuming
+  if (!isLoaded) {
+    return <div className="min-h-screen bg-bg" />; // Loading placeholder
+  }
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-bg">
@@ -129,4 +129,3 @@ export default function Home() {
     </main>
   );
 }
-

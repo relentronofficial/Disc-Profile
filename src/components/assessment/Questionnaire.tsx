@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Question, Answer, Section } from "@/types";
+import { Question, Answer } from "@/types";
 import { SECTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,9 +10,9 @@ import { Loader2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 
 interface QuestionnaireProps {
   currentIdx: number;
-  setCurrentIdx: (idx: number) => void;
+  setCurrentIdx: React.Dispatch<React.SetStateAction<number>>;
   answers: Record<number, Answer>;
-  setAnswers: (fn: (prev: Record<number, Answer>) => Record<number, Answer>) => void;
+  setAnswers: React.Dispatch<React.SetStateAction<Record<number, Answer>>>;
   onComplete: (answers: Record<number, Answer>) => void;
 }
 
