@@ -268,7 +268,7 @@ export default function Results({ userData, scores, onRestart }: ResultsProps) {
                   </div>
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden flex">
                     <div className="h-full bg-tbt-red" style={{ width: `${axes.fastVsCautious.fast}%` }} />
-                    <div className="h-full bg-tbt-red/20" style={{ width: `${axes.fastVsCautious.caution}%` }} />
+                    <div className="h-full bg-tbt-red/20" style={{ width: `${axes.fastVsCautious.cautious}%` }} />
                   </div>
                </div>
             </div>
