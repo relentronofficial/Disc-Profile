@@ -1,0 +1,119 @@
+The mobile responsiveness is now much better, but one major UX issue still remains.
+
+Current Problem:
+
+* The assessment question screen is still vertically scrollable.
+* Users must scroll to see all answer options and action buttons.
+* The experience no longer feels immersive or app-like.
+* Some screens feel compressed while others waste space.
+* Layout balance is inconsistent across device heights.
+
+Goal:
+Make the entire assessment experience fit completely within the screen viewport WITHOUT scrolling.
+
+Important:
+
+* I do NOT want vertical scrolling for the question/answer screen.
+* All content must be visible inside the screen at once.
+* Maintain proper spacing and readability.
+* Preserve premium cinematic UI feel.
+* Avoid cramped layouts.
+
+Required Result:
+Everything must fit perfectly inside the viewport:
+
+* Progress/header section
+* Question text
+* Subtitle/helper text
+* Answer options
+* Navigation buttons
+
+NO:
+
+* vertical scroll
+* overlap
+* clipped content
+* hidden buttons
+* overflowing cards
+* awkward empty spaces
+
+Important Design Requirements:
+
+* Do NOT aggressively shrink the UI.
+* Do NOT reduce readability too much.
+* Keep strong visual hierarchy.
+* Maintain balanced spacing between sections.
+* Ensure the UI still feels premium and breathable.
+
+Preferred Layout Behavior:
+
+* Dynamically adapt layout based on viewport height
+* Use smart space distribution instead of fixed heights
+* Give answer section highest layout priority
+* Prevent question heading from taking excessive height
+* Keep buttons anchored cleanly at bottom
+
+Responsive Layout Strategy:
+
+* Use flexbox with:
+
+  * `display: flex`
+  * `flex-direction: column`
+  * `justify-content: space-between`
+* Use `100dvh` for mobile viewport handling
+* Use responsive spacing with:
+
+  * `clamp()`
+  * `vh`
+  * flex-based sizing
+* Remove unnecessary margins/paddings
+* Optimize content density intelligently
+
+Question Section Requirements:
+
+* Long questions should wrap cleanly
+* Typography should scale responsively
+* Prevent giant multi-line headings
+* Maintain comfortable reading width
+
+Answer Section Requirements:
+
+* All options must remain visible
+* Equal spacing between answer cards
+* Cards should resize proportionally
+* Prevent answer compression
+
+Button Section Requirements:
+
+* Always visible
+* No overlap with answer cards
+* Proper bottom safe-area spacing
+* Consistent positioning across devices
+
+Device Coverage:
+Optimize specifically for:
+
+* Small Android phones
+* iPhones
+* Medium-height screens
+* Short-height screens
+* Tablets
+
+Testing Requirement:
+The entire assessment screen should fit without scrolling on:
+
+* portrait mode
+* landscape mode
+* Chrome mobile emulator
+* real mobile devices
+
+Expected Final Experience:
+
+* immersive
+* app-like
+* premium
+* cinematic
+* balanced
+* compact but breathable
+
+The final UI should feel like a professionally designed onboarding/quiz experience from a top-tier mobile app.

@@ -281,6 +281,14 @@ export const DISC_PROFILES: Record<string, DiscProfile> = {
     pattern: "You carry urgency like oxygen. Slowing down feels like dying. You process pain quickly and move on — sometimes too quickly to learn from it.",
     watch: "You move so fast that you sometimes break trust — with your team, your clients, and yourself. Your biggest enemy is not the market. It is the version of you that burns bridges while building empires.",
     prescription: "Your weapon is boldness — but boldness without consistency is just noise. Pick one offer, one audience, one message. Do it every single day for 90 days. Tamil Business Tribe will help you build the system that matches your speed without losing your people.",
+    traits: {
+      summary: "High initiative, result-oriented, and naturally takes control of situations.",
+      communication: "Direct, brief, and focuses on 'what' rather than 'how'.",
+      decisionMaking: "Fast and decisive, often prioritizing speed over consensus.",
+      stressResponse: "Becomes demanding or blunt under pressure.",
+      leadership: "Commanding and goal-driven, expects results quickly.",
+      growth: "Learning to listen more and valuing the process as much as the outcome.",
+    },
   },
   I: {
     letter: "I",
@@ -292,6 +300,14 @@ export const DISC_PROFILES: Record<string, DiscProfile> = {
     pattern: "You think out loud. Connection charges you completely. Loneliness drains you faster than anything else. You feel everything — highs and lows — more intensely than most.",
     watch: "You start ten things and finish three. Your emotional highs and lows affect your business consistency in ways you may not realise. The clients who love you most are often waiting on follow-ups you forgot about.",
     prescription: "Your weapon is storytelling — but stories need a system behind them. Build one content schedule, one WhatsApp follow-up sequence, and one referral ask you give every happy client. Tamil Business Tribe will help you systematise what you already do naturally.",
+    traits: {
+      summary: "Enthusiastic, optimistic, and highly skilled at building relationships.",
+      communication: "Expressive, persuasive, and focuses on people and emotions.",
+      decisionMaking: "Influenced by gut feeling and the impact on people.",
+      stressResponse: "May become overly emotional or disorganized under pressure.",
+      leadership: "Inspiring and democratic, leads through motivation.",
+      growth: "Focusing on follow-through and organizational consistency.",
+    },
   },
   S: {
     letter: "S",
@@ -303,6 +319,14 @@ export const DISC_PROFILES: Record<string, DiscProfile> = {
     pattern: "You carry other people's weight quietly and without complaint. Peace matters to you more than most people around you realise. You recover slowly from disappointment.",
     watch: "You are likely underpricing yourself and over-delivering without being asked. You say yes when you mean no. You wait to be invited when you should be leading.",
     prescription: "Your weapon is referrals — but you need to ask for them out loud. Set a rule: after every positive client interaction, ask for one referral. Just one. Tamil Business Tribe will help you build the confidence and the script to ask without feeling like you are imposing.",
+    traits: {
+      summary: "Patient, reliable, and deeply committed to group harmony.",
+      communication: "Gentle, listening-oriented, and prefers calm environments.",
+      decisionMaking: "Methodical and slow, seeks security and consensus.",
+      stressResponse: "May become passive or resistant to change when stressed.",
+      leadership: "Supportive and collaborative, a true servant leader.",
+      growth: "Learning to set boundaries and take decisive risks.",
+    },
   },
   C: {
     letter: "C",
@@ -314,5 +338,29 @@ export const DISC_PROFILES: Record<string, DiscProfile> = {
     pattern: "You need to understand things fully before you can trust them. That depth is both your greatest gift and your most persistent barrier. You are harder on yourself than anyone else ever is.",
     watch: "You are probably sitting on ideas, products, or offers that are 80% ready but have not launched because they are not 100% perfect yet. Perfection is procrastination wearing a professional mask.",
     prescription: "Your weapon is authority content — detailed, accurate, educational posts that make people trust you before they ever meet you. But set one rule: if something is 70% ready, it launches. Tamil Business Tribe will push you to execute, not just plan.",
+    traits: {
+      summary: "Analytical, precise, and high standard for quality and accuracy.",
+      communication: "Fact-based, detailed, and prefers written clarity.",
+      decisionMaking: "Evidence-driven, needs all data before committing.",
+      stressResponse: "Becomes overly critical or withdrawn under pressure.",
+      leadership: "Quality-focused and structured, leads through expertise.",
+      growth: "Learning that 'done is better than perfect' and trusting intuition.",
+    },
   },
+};
+
+export const BLEND_TITLES: Record<string, string> = {
+  "DI": "The Dynamic Achiever",
+  "ID": "The Charismatic Leader",
+  "DS": "The Practical Driving Force",
+  "SD": "The Reliable Strategist",
+  "DC": "The Strategic Executor",
+  "CD": "The Precise Architect",
+  "IS": "The Compassionate Connector",
+  "SI": "The Supportive Energizer",
+  "IC": "The Persuasive Analyst",
+  "CI": "The Systematic Communicator",
+  "SC": "The Quality-Focused Partner",
+  "CS": "The Detail-Oriented Anchor",
+  "Balanced": "The Adaptive All-Rounder"
 };

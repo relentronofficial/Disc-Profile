@@ -38,13 +38,13 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
   }, [visibleIndex]);
 
   return (
-    <div className="h-[100dvh] w-full bg-bg flex flex-col md:flex-row items-center justify-between p-6 md:p-[8vh] overflow-hidden relative border-none box-border safe-area-inset">
+    <div className="min-h-[100dvh] w-full bg-bg flex flex-col md:flex-row items-center justify-between p-6 md:p-[8vh] overflow-hidden relative box-border safe-area-inset">
       {/* Logo - Positioned relative to viewport padding */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 0.9, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="absolute top-4 left-6 md:top-8 md:left-10 z-30 w-20 h-8 md:w-32 md:h-12"
+        className="absolute top-[3vh] left-6 md:top-8 md:left-10 z-30 w-20 h-8 md:w-32 md:h-12"
       >
         <Image 
           src="/logo.png" 
@@ -64,9 +64,9 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.2, ease: "easeOut" }}
-        className="w-full md:w-1/2 flex items-center justify-center mt-12 md:mt-0 flex-[0.8] md:flex-1 min-h-0"
+        className="w-full md:w-1/2 flex items-center justify-center mt-[10vh] md:mt-0 flex-1 min-h-0"
       >
-        <div className="w-full max-w-[200px] xs:max-w-[240px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[500px] aspect-square relative">
+        <div className="w-full max-w-[240px] xs:max-w-[280px] sm:max-w-[340px] md:max-w-[450px] lg:max-w-[500px] aspect-square relative">
           <Lottie 
             animationData={animationData} 
             loop={true}
@@ -76,9 +76,9 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
       </motion.div>
 
       {/* Right/Bottom Section: Instructions & CTA */}
-      <div className="w-full md:w-1/2 flex flex-col items-center md:items-start justify-center md:pl-[6vw] flex-1 min-h-0 z-10 pb-4 md:pb-0">
+      <div className="w-full md:w-1/2 flex flex-col items-center md:items-start justify-center md:pl-[6vw] flex-[1.2] md:flex-1 min-h-0 z-10 pb-[4vh] md:pb-0 gap-[4vh]">
         {/* Text Container */}
-        <div className="space-y-[1.5vh] md:space-y-[2.5vh] w-full flex flex-col justify-center items-center md:items-start overflow-hidden">
+        <div className="space-y-[2vh] md:space-y-[2.5vh] w-full flex flex-col justify-center items-center md:items-start overflow-hidden">
           {INSTRUCTIONS.map((text, index) => (
             <motion.p
               key={index}
@@ -92,9 +92,9 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
                 duration: 0.7, 
                 ease: [0.22, 1, 0.36, 1]
               }}
-              className="font-medium leading-[1.4] tracking-tight text-center md:text-left px-2"
+              className="font-medium leading-[1.4] tracking-tight text-center md:text-left px-4"
               style={{
-                fontSize: "clamp(0.85rem, 1vh + 0.7vw, 1.35rem)",
+                fontSize: "clamp(0.9rem, 1.2vh + 0.5vw, 1.35rem)",
                 maxWidth: "min(90vw, 500px)",
                 color: visibleIndex === index ? "var(--color-txt)" : "var(--color-txt3)"
               }}
@@ -105,7 +105,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         </div>
 
         {/* Start Button Container */}
-        <div className="h-[10vh] md:h-[15vh] flex items-end md:items-center mt-[3vh] md:mt-[2vh]">
+        <div className="h-[12vh] flex items-center mt-2">
           <AnimatePresence>
             {showButton && (
               <motion.button
@@ -115,13 +115,14 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onComplete}
-                className="group relative inline-flex items-center gap-3 px-8 py-3.5 md:px-10 md:py-4 bg-tbt-red rounded-xl text-white font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(204,0,0,0.3)] transition-all overflow-hidden uppercase"
+                className="group relative inline-flex items-center gap-3 px-10 py-[2vh] bg-tbt-red rounded-xl text-white font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(204,0,0,0.3)] transition-all overflow-hidden uppercase"
                 style={{
-                  fontSize: "clamp(0.65rem, 0.7vh + 0.3vw, 0.8rem)"
+                  fontSize: "clamp(0.7rem, 0.8vh + 0.3vw, 0.85rem)",
+                  minHeight: "48px"
                 }}
               >
                 <span className="relative z-10">Start Assessment</span>
-                <ArrowRight className="relative z-10 w-3.5 h-3.5 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </motion.button>
             )}

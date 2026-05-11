@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import Image from "next/image";
 
 interface QuestionnaireProps {
   currentIdx: number;
@@ -50,7 +51,7 @@ export default function Questionnaire({
 
   if (loading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden text-center">
+      <div className="h-[100dvh] flex flex-col items-center justify-center bg-bg relative overflow-hidden text-center">
         <div className="absolute inset-0 bg-glow-red opacity-10 blur-[100px]" />
         <Loader2 className="w-8 h-8 text-tbt-red animate-spin mb-4 relative z-10" />
         <p className="text-[10px] text-txt3 font-black uppercase tracking-[0.2em] relative z-10 animate-pulse">
@@ -62,7 +63,7 @@ export default function Questionnaire({
 
   if (questions.length === 0) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-bg p-4 text-center">
+      <div className="h-[100dvh] flex flex-col items-center justify-center bg-bg p-4 text-center">
         <p className="text-txt2 text-sm">No discovery parameters found.</p>
       </div>
     );
@@ -103,13 +104,26 @@ export default function Questionnaire({
   const progress = ((currentIdx + 1) / questions.length) * 100;
 
   return (
-    <div className="h-screen max-h-screen flex flex-col relative z-1 overflow-hidden bg-bg font-sans">
-      {/* Background Cinematic Elements */}
-      <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-glow-red opacity-[0.06] blur-[120px] -z-10 animate-pulse-slow" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-glow-red opacity-[0.03] blur-[120px] -z-10" />
+    <div className="h-[100dvh] flex flex-col relative z-1 overflow-hidden bg-bg font-sans safe-area-inset">
+      {/* Brand Logo - Top Left */}
+      <div className="absolute top-6 left-6 md:top-10 md:left-10 z-50 pointer-events-none">
+        <div className="relative w-[90px] h-[35px] md:w-[120px] md:h-[45px]">
+          <Image 
+            src="/logo.png" 
+            alt="TBT Logo" 
+            fill 
+            className="object-contain"
+            priority
+          />
+        </div>
+      </div>
 
-      {/* 1. Header Section - Refined and Balanced */}
-      <header className="w-full pt-6 md:pt-8 pb-2 px-6 md:px-12 flex justify-center shrink-0">
+      {/* Background Cinematic Elements */}
+      <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-glow-red opacity-[0.06] blur-[120px] -z-10 animate-pulse-slow pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-glow-red opacity-[0.03] blur-[120px] -z-10 pointer-events-none" />
+
+      {/* 1. Header Section - Fixed Height & Compact */}
+      <header className="w-full pt-[4vh] md:pt-[6vh] pb-[2vh] px-6 md:px-12 flex justify-center shrink-0">
         <div className="w-full max-w-[840px] flex flex-col gap-2">
           <div className="flex justify-between items-end px-1">
             <div className="flex items-center gap-2">
@@ -135,9 +149,9 @@ export default function Questionnaire({
         </div>
       </header>
 
-      {/* 2. Main Content Section - Redesigned for Proportional Balance */}
-      <main className="flex-1 flex flex-col items-center min-h-0 w-full px-6 md:px-12 py-2 md:py-4 lg:py-6 overflow-hidden">
-        <div className="w-full max-w-[840px] flex-1 flex flex-col justify-center min-h-0 relative">
+      {/* 2. Main Content Section - Flexible and Non-Scrolling */}
+      <main className="flex-1 flex flex-col items-center w-full px-6 md:px-12 overflow-hidden min-h-0">
+        <div className="w-full max-w-[840px] flex-1 flex flex-col justify-center min-h-0 relative py-[2vh]">
           <AnimatePresence mode="wait">
             <motion.div
               key={question.id}
@@ -145,10 +159,10 @@ export default function Questionnaire({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col w-full"
+              className="flex flex-col w-full h-full justify-center min-h-0"
             >
-              {/* Question Meta - Scaled Down */}
-              <div className="flex items-center gap-3 mb-3 md:mb-4 opacity-50">
+              {/* Question Meta */}
+              <div className="flex items-center gap-3 mb-[2vh] opacity-50 shrink-0">
                 <div className="flex items-center gap-2 text-[8px] text-tbt-red font-black uppercase tracking-[0.2em]">
                   <Sparkles className="w-2.5 h-2.5" />
                   {question.tag}
@@ -159,21 +173,21 @@ export default function Questionnaire({
                 </div>
               </div>
 
-              {/* Cinematic Heading - Optimized with clamp() and better line-height */}
-              <div className="mb-6 md:mb-8 lg:mb-10 max-w-[760px]">
+              {/* Cinematic Heading - Optimized space usage */}
+              <div className="mb-[3vh] max-w-[760px] shrink-0">
                 <h2 
-                  className="font-serif font-black text-txt mb-3 md:mb-4 tracking-tight leading-[1.15]"
-                  style={{ fontSize: "clamp(1.4rem, 4.5vh + 0.5rem, 2.6rem)" }}
+                  className="font-serif font-black text-txt mb-2 md:mb-4 tracking-tight leading-[1.15]"
+                  style={{ fontSize: "clamp(1.2rem, 3.5vh + 0.5rem, 2.4rem)" }}
                 >
                   {question.text}
                 </h2>
-                <p className="text-[11px] md:text-sm lg:text-[15px] text-txt3 font-medium leading-relaxed italic opacity-60 border-l-2 border-tbt-red/20 pl-4 md:pl-6 max-w-[640px]">
+                <p className="text-[10px] md:text-sm text-txt3 font-medium leading-relaxed italic opacity-60 border-l-2 border-tbt-red/20 pl-4 md:pl-6 max-w-[640px]">
                   {question.instruction}
                 </p>
               </div>
 
-              {/* Premium Option Grid - Balanced Priority */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 lg:gap-5 mb-4">
+              {/* Premium Option Grid - Proportional Sizing */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-[1.5vh] md:gap-4 lg:gap-5 mb-[1vh] overflow-hidden min-h-0">
                 {(Object.entries(question.options) as [("A" | "B" | "C" | "D"), string][]).map(
                   ([letter, text]) => (
                     <motion.button
@@ -182,7 +196,7 @@ export default function Questionnaire({
                       whileTap={{ scale: 0.99 }}
                       onClick={() => handleSelect(letter)}
                       className={cn(
-                        "flex items-center gap-4 md:gap-5 bg-white/[0.012] border border-white/[0.06] rounded-2xl p-4 md:p-5 lg:p-5.5 text-left w-full transition-all duration-300 group relative overflow-hidden",
+                        "flex items-center gap-4 bg-white/[0.012] border border-white/[0.06] rounded-2xl p-[2vh] md:p-5 text-left w-full transition-all duration-300 group relative overflow-hidden",
                         answers[question.id]?.answer === letter &&
                           "bg-tbt-red/[0.07] border-tbt-red/30 shadow-[0_15px_40px_rgba(204,0,0,0.08)] ring-1 ring-tbt-red/10"
                       )}
@@ -190,7 +204,7 @@ export default function Questionnaire({
                       <div className="absolute inset-0 bg-gradient-to-br from-tbt-red/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div
                         className={cn(
-                          "w-8 h-8 md:w-9 md:h-9 rounded-xl border border-white/10 flex items-center justify-center text-xs md:text-sm font-black text-txt3 shrink-0 transition-all font-serif group-hover:border-tbt-red/30 relative z-10",
+                          "w-7 h-7 md:w-9 md:h-9 rounded-xl border border-white/10 flex items-center justify-center text-[10px] md:text-sm font-black text-txt3 shrink-0 transition-all font-serif group-hover:border-tbt-red/30 relative z-10",
                           answers[question.id]?.answer === letter &&
                             "bg-tbt-red border-tbt-red text-white shadow-md scale-105"
                         )}
@@ -199,7 +213,7 @@ export default function Questionnaire({
                       </div>
                       <div
                         className={cn(
-                          "text-[13px] md:text-[15px] lg:text-[16px] text-txt2 font-medium leading-tight md:leading-snug transition-colors duration-300 group-hover:text-txt relative z-10",
+                          "text-[12px] md:text-[14px] lg:text-[16px] text-txt2 font-medium leading-tight md:leading-snug transition-colors duration-300 group-hover:text-txt relative z-10",
                           answers[question.id]?.answer === letter && "text-txt font-semibold"
                         )}
                       >
@@ -214,8 +228,8 @@ export default function Questionnaire({
         </div>
       </main>
 
-      {/* 3. Footer Section - Properly Anchored and Breathable */}
-      <footer className="w-full pb-8 md:pb-10 lg:pb-12 pt-4 px-6 md:px-12 flex justify-center shrink-0 border-t border-white/[0.02] bg-bg/40 backdrop-blur-md">
+      {/* 3. Footer Section - Fixed Height and Bottom-Anchored */}
+      <footer className="w-full pb-[4vh] md:pb-[6vh] pt-[2vh] px-6 md:px-12 flex justify-center shrink-0 border-t border-white/[0.02] bg-bg/40 backdrop-blur-md">
         <div className="w-full max-w-[840px]">
           <div className="flex gap-4 items-center">
             {currentIdx > 0 && (
@@ -223,7 +237,7 @@ export default function Questionnaire({
                 whileHover={{ x: -3 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleBack}
-                className="h-12 md:h-14 px-6 md:px-10 bg-white/[0.02] border border-white/10 rounded-2xl text-txt2 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] hover:text-txt hover:bg-white/[0.04] transition-all duration-300 flex items-center justify-center gap-2 md:gap-3"
+                className="h-10 md:h-12 px-6 md:px-10 bg-white/[0.02] border border-white/10 rounded-2xl text-txt2 text-[9px] md:text-xs font-black uppercase tracking-[0.3em] hover:text-txt hover:bg-white/[0.04] transition-all duration-300 flex items-center justify-center gap-2 md:gap-3"
               >
                 <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
                 <span className="hidden sm:inline tracking-widest">Revisit</span>
@@ -234,13 +248,13 @@ export default function Questionnaire({
               whileTap={answers[question.id] ? { scale: 0.99 } : {}}
               disabled={!answers[question.id]}
               onClick={handleNext}
-              className="flex-1 h-12 md:h-14 bg-tbt-red hover:bg-tbt-red-hover transition-all duration-500 rounded-2xl text-white text-[10px] md:text-xs font-black uppercase tracking-[0.3em] disabled:opacity-10 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-3 md:gap-4 shadow-[0_10px_30px_rgba(204,0,0,0.1)] group/next relative overflow-hidden"
+              className="flex-1 h-10 md:h-12 bg-tbt-red hover:bg-tbt-red-hover transition-all duration-500 rounded-2xl text-white text-[9px] md:text-xs font-black uppercase tracking-[0.3em] disabled:opacity-10 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-3 md:gap-4 shadow-[0_10px_30px_rgba(204,0,0,0.1)] group/next relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/next:translate-x-full transition-transform duration-1000" />
-              <span className="relative z-10 flex items-center gap-3 tracking-widest">
+              <span className="relative z-10 flex items-center gap-2 tracking-widest">
                 {currentIdx < questions.length - 1
-                  ? <>Advance Sequence <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover/next:translate-x-1 transition-transform" /></>
-                  : <>Generate Profile <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover/next:translate-x-1 transition-transform" /></>}
+                  ? <>Advance Sequence <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover/next:translate-x-1 transition-transform" /></>
+                  : <>Generate Profile <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover/next:translate-x-1 transition-transform" /></>}
               </span>
             </motion.button>
           </div>

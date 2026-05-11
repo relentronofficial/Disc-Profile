@@ -10,6 +10,7 @@ import { computeScores } from "@/lib/utils";
 import { saveAssessmentResult } from "@/actions/assessment";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { LogOut, X, AlertTriangle } from "lucide-react";
 
 type Step = "landing" | "intro" | "questionnaire" | "results";
 
@@ -21,6 +22,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -66,7 +68,15 @@ export default function Home() {
     setStep("results");
     
     if (userData) {
-      await saveAssessmentResult(userData, finalAnswers);
+      console.log("Saving assessment result...");
+      const result = await saveAssessmentResult(userData, finalAnswers);
+      if (!result.success) {
+        console.error("Failed to save assessment:", result.error);
+        // We could show a toast here if we had a toast library
+        alert("Note: Your results are shown correctly, but there was an issue saving them to the database. Please contact support if you need a permanent record.");
+      } else {
+        console.log("Assessment saved successfully:", result.data?.id);
+      }
     }
   };
 
@@ -76,6 +86,7 @@ export default function Home() {
     setUserData(null);
     setAnswers({});
     setCurrentIdx(0);
+    setShowLogoutConfirm(false);
   };
 
   if (!isLoaded) {
@@ -84,23 +95,72 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-bg">
-      {/* Dynamic Background Logo */}
+      {/* Top Bar with Logout - Fixed Positioning to avoid overlaps */}
+      <div className="absolute top-6 right-6 md:top-10 md:right-10 z-[100] pointer-events-none">
+        <AnimatePresence>
+          {step !== "landing" && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={() => setShowLogoutConfirm(true)}
+              className="group flex items-center justify-center w-10 h-10 md:w-auto md:h-12 bg-white/5 hover:bg-tbt-red/10 border border-white/10 rounded-full transition-all backdrop-blur-md shadow-xl pointer-events-auto md:px-6"
+            >
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-txt3 group-hover:text-tbt-red transition-colors hidden md:block mr-3">Exit Assessment</span>
+              <LogOut className="w-4 h-4 text-txt3 group-hover:text-tbt-red transition-colors" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Logout Confirmation Modal */}
       <AnimatePresence>
-        {step === "landing" && (
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 0.9, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="absolute top-6 left-6 z-10 w-24 h-10 md:w-32 md:h-12"
-          >
-            <Image 
-              src="/logo.png" 
-              alt="TBT Logo" 
-              fill 
-              className="object-contain object-left"
-              priority
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLogoutConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-          </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-[400px] bg-card border border-white/10 rounded-[2.5rem] p-10 shadow-2xl overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                <LogOut className="w-32 h-32" />
+              </div>
+              
+              <div className="relative z-10 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-tbt-red/10 border border-tbt-red/20 flex items-center justify-center mx-auto mb-8">
+                  <AlertTriangle className="w-8 h-8 text-tbt-red" />
+                </div>
+                
+                <h3 className="font-serif text-2xl font-black text-txt mb-4 tracking-tight">End Assessment?</h3>
+                <p className="text-sm text-txt3 leading-relaxed mb-10 px-4">
+                  Are you sure you want to exit? Your current progress will be lost and you'll need to start again.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="h-14 rounded-2xl border border-white/10 text-[11px] font-black uppercase tracking-widest text-txt2 hover:bg-white/5 transition-all"
+                  >
+                    No, Stay
+                  </button>
+                  <button 
+                    onClick={handleRestart}
+                    className="h-14 rounded-2xl bg-tbt-red hover:bg-tbt-red-hover text-[11px] font-black uppercase tracking-widest text-white transition-all shadow-lg shadow-tbt-red/20"
+                  >
+                    Yes, Exit
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

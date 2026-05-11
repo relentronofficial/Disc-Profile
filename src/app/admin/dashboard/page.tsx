@@ -108,6 +108,23 @@ export default function AdminDashboard() {
       router.push("/admin");
     } else {
       fetchData();
+      
+      // Setup realtime subscription
+      const channel = supabase
+        .channel('assessments-changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'assessments' },
+          (payload) => {
+            console.log('New assessment detected:', payload);
+            setResults(prev => [payload.new as AssessmentResult, ...prev]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [router, fetchData]);
 
@@ -187,10 +204,17 @@ export default function AdminDashboard() {
   };
 
   const filteredResults = results.filter(r => {
-    const matchesSearch = r.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (r.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (r.business || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (r.mobile_number || '').includes(searchQuery);
+    if (!r) return false;
+    const name = (r.full_name || '').toLowerCase();
+    const city = (r.city || '').toLowerCase();
+    const business = (r.business || '').toLowerCase();
+    const mobile = (r.mobile_number || '');
+    const search = (searchQuery || '').toLowerCase();
+
+    const matchesSearch = name.includes(search) || 
+                          city.includes(search) ||
+                          business.includes(search) ||
+                          mobile.includes(search);
     const matchesDisc = discFilter === "" || r.dominant_type === discFilter;
     return matchesSearch && matchesDisc;
   });

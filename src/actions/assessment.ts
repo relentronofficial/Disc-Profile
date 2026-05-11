@@ -2,14 +2,15 @@
 
 import { supabase } from "@/lib/supabase";
 import { Answer, UserData } from "@/types";
-import { computeScores, getDominantType } from "@/lib/utils";
+import { computeScores, analyzeDiscProfile } from "@/lib/utils";
+import { DISC_PROFILES } from "@/lib/constants";
 
 import { sendZacxTemplateMessage } from "@/lib/zacx";
 
 export async function saveAssessmentResult(userData: UserData, answers: Record<number, Answer>) {
   try {
-    const scores = computeScores(answers);
-    const dominant = getDominantType(scores);
+    const rawScores = computeScores(answers);
+    const analysis = analyzeDiscProfile(rawScores, DISC_PROFILES);
 
     console.log("Saving assessment for:", userData.name);
 
@@ -20,11 +21,11 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
         mobile_number: userData.mobile,
         city: userData.city,
         business: userData.biz,
-        score_d: scores.D,
-        score_i: scores.I,
-        score_s: scores.S,
-        score_c: scores.C,
-        dominant_type: dominant
+        score_d: Math.round(analysis.pct.D),
+        score_i: Math.round(analysis.pct.I),
+        score_s: Math.round(analysis.pct.S),
+        score_c: Math.round(analysis.pct.C),
+        dominant_type: analysis.primaryType
       })
       .select()
       .single();
@@ -33,7 +34,7 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
       console.error("Supabase Assessment Error:", assessmentError);
       return { 
         success: false, 
-        error: assessmentError.message, 
+        error: `Database Insert Failed: ${assessmentError.message}`, 
         details: assessmentError.details,
         hint: assessmentError.hint 
       };

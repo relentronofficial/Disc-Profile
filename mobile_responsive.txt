@@ -1,0 +1,128 @@
+The app still has multiple mobile responsiveness issues across different screen sizes.
+
+Current Problems:
+
+* Elements overlap on smaller screens
+* Some sections become hidden or clipped
+* Uneven spacing across devices
+* Extra empty spaces appear in some layouts
+* Some cards/buttons overflow outside the viewport
+* Typography scaling is inconsistent
+* Certain components look good on one device but break on others
+* Layout balance is not maintained across screen heights
+
+Goal:
+Create a truly professional production-level responsive system for ALL mobile screen sizes.
+
+Required Result:
+
+* No overlap
+* No clipping
+* No hidden content
+* No unnecessary empty spaces
+* No horizontal scrolling
+* Perfect spacing consistency
+* Balanced visual hierarchy
+* Smooth responsive behavior across all devices
+
+Target Devices:
+Optimize for:
+
+* Small Android phones
+* Large Android phones
+* iPhones
+* Tablets
+* Fold devices
+* Short-height screens
+* Tall screens
+
+Important:
+Do NOT only patch individual components.
+Refactor the overall responsive layout system professionally.
+
+Required Improvements:
+
+1. Responsive Layout System
+
+* Use proper responsive containers
+* Replace fragile fixed heights/widths
+* Use fluid layouts
+* Use adaptive spacing system
+* Ensure all sections resize proportionally
+
+2. Typography System
+
+* Use responsive typography with `clamp()`
+* Prevent oversized wrapping
+* Prevent tiny unreadable text
+* Maintain hierarchy consistency
+
+3. Spacing System
+
+* Standardize padding/margins globally
+* Remove random gaps
+* Remove cramped sections
+* Use viewport-aware spacing
+
+4. Flex/Grid Optimization
+
+* Proper breakpoint handling
+* Avoid layout breaking at edge screen sizes
+* Prevent content collision
+* Ensure equal visual distribution
+
+5. Mobile Height Handling
+
+* Use `100dvh`
+* Handle mobile browser safe areas correctly
+* Prevent bottom CTA clipping
+* Prevent keyboard overlap issues
+
+6. Component Stability
+
+* Cards should scale cleanly
+* Buttons should never overflow
+* Text containers should wrap properly
+* Images/Lottie/animations should resize proportionally
+
+7. Animation Responsiveness
+
+* Reduce excessive motion on smaller screens
+* Prevent animation overflow
+* Maintain cinematic feel without breaking layout
+
+Technical Direction:
+
+* Mobile-first responsive architecture
+* Proper breakpoint strategy
+* Use:
+
+  * Flexbox
+  * CSS Grid
+  * clamp()
+  * min/max width controls
+  * aspect-ratio handling
+  * overflow protection
+* Remove hardcoded pixel values where possible
+
+Testing Requirement:
+Ensure responsiveness works properly on:
+
+* Chrome DevTools device presets
+* Real Android screens
+* Real iPhone screens
+* Landscape mode
+* Portrait mode
+
+Expected Final Feel:
+
+* Premium
+* Production-ready
+* Polished
+* Balanced
+* Clean
+* Modern
+* Cinematic
+* App-level quality
+
+The final UI should feel like a professionally engineered SaaS/mobile product — not a desktop layout compressed into mobile.
