@@ -177,7 +177,7 @@ export function analyzeDiscProfile(
     suppressedDimensions,
     axes: {
       taskVsPeople: { task, people, dominant: taskVsPeople.dominant, gap: taskVsPeople.gap },
-      fastVsCautious: { fast, caution, dominant: fastVsCautious.dominant, gap: fastVsCautious.gap }
+      fastVsCautious: { fast, cautious: caution, dominant: fastVsCautious.dominant, gap: fastVsCautious.gap }
     },
     insights,
     // Backward compatibility fields
