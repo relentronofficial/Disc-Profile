@@ -111,13 +111,13 @@ export default function AdminDashboard() {
       
       // Setup realtime subscription
       const channel = supabase
-        .channel('assessments-changes')
+        .channel('db-changes')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'assessments' },
-          (payload) => {
-            console.log('New assessment detected:', payload);
-            setResults(prev => [payload.new as AssessmentResult, ...prev]);
+          { event: '*', schema: 'public', table: 'assessments' },
+          () => {
+            console.log('Database change detected, refreshing...');
+            fetchData();
           }
         )
         .subscribe();

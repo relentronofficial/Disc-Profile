@@ -9,8 +9,10 @@ import { sendZacxTemplateMessage } from "@/lib/zacx";
 
 export async function saveAssessmentResult(userData: UserData, answers: Record<number, Answer>) {
   try {
-    const rawScores = computeScores(answers);
-    const analysis = analyzeDiscProfile(rawScores, DISC_PROFILES);
+    const scores = computeScores(answers);
+    
+    // Exact dominant type logic from "bot changed"
+    const dominant = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0] as "D" | "I" | "S" | "C";
 
     console.log("Saving assessment for:", userData.name);
 
@@ -21,11 +23,11 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
         mobile_number: userData.mobile,
         city: userData.city,
         business: userData.biz,
-        score_d: Math.round(analysis.pct.D),
-        score_i: Math.round(analysis.pct.I),
-        score_s: Math.round(analysis.pct.S),
-        score_c: Math.round(analysis.pct.C),
-        dominant_type: analysis.primaryType
+        score_d: scores.D,
+        score_i: scores.I,
+        score_s: scores.S,
+        score_c: scores.C,
+        dominant_type: dominant
       })
       .select()
       .single();
@@ -57,18 +59,18 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
 
     // Trigger WhatsApp Message via Zacx
     const channelId = process.env.ZACX_CHANNEL_ID;
-    console.log("Attempting WhatsApp trigger. Channel ID present:", !!channelId);
-    
     if (channelId) {
-      const waResult = await sendZacxTemplateMessage({
-        to: userData.mobile,
-        templateName: "disc_result",
-        channelId: channelId,
-        variables: [userData.name]
-      });
-      console.log("WhatsApp Send Result:", waResult.success ? "Success" : "Failed", waResult.error || "");
-    } else {
-      console.warn("ZACX_CHANNEL_ID missing in environment variables.");
+      // Run in background/non-blocking if possible, but for server actions we just await
+      try {
+        await sendZacxTemplateMessage({
+          to: userData.mobile,
+          templateName: "disc_result",
+          channelId: channelId,
+          variables: [userData.name]
+        });
+      } catch (waErr) {
+        console.error("WhatsApp Trigger failed, but assessment was saved:", waErr);
+      }
     }
 
     if (answersError) {
