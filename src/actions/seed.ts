@@ -24,25 +24,25 @@ export async function seedDatabase() {
     }
 
     // 2. Seed DISC Profiles
-    const { count: pCount } = await supabase.from('disc_profiles').select('*', { count: 'exact', head: true });
+    console.log("Seeding/Updating DISC profiles...");
+    const formattedProfiles = Object.values(DISC_PROFILES).map(p => ({
+      letter: p.letter,
+      name: p.name,
+      nickname: p.nickname,
+      color: p.color,
+      dim_color: p.dimColor,
+      edge: p.edge,
+      pattern: p.pattern,
+      watch: p.watch,
+      prescription: p.prescription,
+      traits: p.traits
+    }));
     
-    if (pCount === 0) {
-      console.log("Seeding DISC profiles...");
-      const formattedProfiles = Object.values(DISC_PROFILES).map(p => ({
-        letter: p.letter,
-        name: p.name,
-        nickname: p.nickname,
-        color: p.color,
-        dim_color: p.dimColor,
-        edge: p.edge,
-        pattern: p.pattern,
-        watch: p.watch,
-        prescription: p.prescription
-      }));
-      
-      const { error: pError } = await supabase.from('disc_profiles').insert(formattedProfiles);
-      if (pError) throw pError;
-    }
+    const { error: pError } = await supabase
+      .from('disc_profiles')
+      .upsert(formattedProfiles, { onConflict: 'letter' });
+    
+    if (pError) throw pError;
 
     return { success: true };
   } catch (err: any) {

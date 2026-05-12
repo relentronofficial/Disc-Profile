@@ -381,8 +381,15 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const { error } = await supabase.from('disc_profiles').update({
-        name: p.name, nickname: p.nickname, color: p.color, dim_color: p.dimColor,
-        edge: p.edge, pattern: p.pattern, watch: p.watch, prescription: p.prescription
+        name: p.name, 
+        nickname: p.nickname, 
+        color: p.color, 
+        dim_color: p.dimColor,
+        edge: p.edge, 
+        pattern: p.pattern, 
+        watch: p.watch, 
+        prescription: p.prescription,
+        traits: p.traits
       }).eq('letter', p.letter);
       if (error) throw error;
       setProfiles(profiles.map(item => item.letter === p.letter ? p : item));
@@ -490,6 +497,38 @@ export default function AdminDashboard() {
       if (error) throw error;
       fetchMappings(selectedSet.id);
     } catch (err: any) { alert(err.message); }
+  };
+
+  const handleMoveMapping = async (m: QuestionSetMapping, direction: 'up' | 'down') => {
+    const idx = setMappings.findIndex(x => x.id === m.id);
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    
+    if (targetIdx < 0 || targetIdx >= setMappings.length) return;
+    
+    const target = setMappings[targetIdx];
+    const currentOrder = m.display_order;
+    const targetOrder = target.display_order;
+
+    setLoading(true);
+    try {
+      const { error: err1 } = await supabase
+        .from('question_set_questions')
+        .update({ display_order: targetOrder })
+        .eq('id', m.id);
+      
+      const { error: err2 } = await supabase
+        .from('question_set_questions')
+        .update({ display_order: currentOrder })
+        .eq('id', target.id);
+
+      if (err1 || err2) throw err1 || err2;
+      
+      if (selectedSet) fetchMappings(selectedSet.id);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDuplicateSet = async (s: QuestionSet) => {
@@ -1263,6 +1302,69 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Detailed Traits Section */}
+                      <div className="px-8 pb-8">
+                        <div className="pt-8 border-t border-border space-y-6">
+                          <h4 className="text-[10px] font-black text-txt3 uppercase tracking-[0.2em] mb-4">Detailed Behavioral Traits</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Communication</label>
+                              <textarea 
+                                value={p.traits.communication} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, communication: e.target.value}} : item))} 
+                                className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
+                                rows={2} 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Decision Making</label>
+                              <textarea 
+                                value={p.traits.decisionMaking} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, decisionMaking: e.target.value}} : item))} 
+                                className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
+                                rows={2} 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Stress Response</label>
+                              <textarea 
+                                value={p.traits.stressResponse} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, stressResponse: e.target.value}} : item))} 
+                                className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
+                                rows={2} 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Leadership</label>
+                              <textarea 
+                                value={p.traits.leadership} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, leadership: e.target.value}} : item))} 
+                                className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
+                                rows={2} 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Growth Area</label>
+                              <textarea 
+                                value={p.traits.growth} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, growth: e.target.value}} : item))} 
+                                className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
+                                rows={2} 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Executive Summary</label>
+                              <textarea 
+                                value={p.traits.summary} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, summary: e.target.value}} : item))} 
+                                className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
+                                rows={2} 
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1321,6 +1423,54 @@ export default function AdminDashboard() {
                     <div className="bg-card p-4 rounded-xl border border-border"><div className="text-2xl font-black text-blue-primary">{selectedResult.score_c}</div><div className="text-[9px] font-bold text-txt3 mt-1 uppercase">Conscientious</div></div>
                   </div>
                 </div>
+
+                {/* Behavioral Analysis */}
+                {(selectedResult.blend_label || selectedResult.behavioral_summary) && (
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-txt3 uppercase tracking-[0.2em] border-b border-border pb-3">Behavioral Analysis</h4>
+                    <div className="space-y-4">
+                      {selectedResult.blend_label && (
+                        <div className="bg-card p-5 rounded-xl border border-border">
+                          <div className="text-[10px] font-black text-tbt-red uppercase tracking-widest mb-1">Profile Blend</div>
+                          <div className="text-lg font-bold text-txt">{selectedResult.blend_label}</div>
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-card p-4 rounded-xl border border-border">
+                          <div className="text-[9px] font-black text-txt3 uppercase tracking-widest mb-1">Intensity Level</div>
+                          <div className="text-sm font-bold text-txt">{selectedResult.intensity_level || "Standard"}</div>
+                        </div>
+                        <div className="bg-card p-4 rounded-xl border border-border">
+                          <div className="text-[9px] font-black text-txt3 uppercase tracking-widest mb-1">Secondary Type</div>
+                          <div className="text-sm font-bold text-txt">{selectedResult.secondary_type || "None"}</div>
+                        </div>
+                      </div>
+
+                      {selectedResult.behavioral_summary && (
+                        <div className="bg-card p-5 rounded-xl border border-border">
+                          <div className="text-[10px] font-black text-txt3 uppercase tracking-widest mb-2">Behavioral Summary</div>
+                          <p className="text-xs text-txt2 leading-relaxed italic">"{selectedResult.behavioral_summary}"</p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 gap-4">
+                         {[
+                           { label: "Communication Style", value: selectedResult.communication_style },
+                           { label: "Decision Making", value: selectedResult.decision_making },
+                           { label: "Leadership Style", value: selectedResult.leadership_style },
+                           { label: "Stress Response", value: selectedResult.stress_response },
+                           { label: "Growth Edge", value: selectedResult.growth_recommendations },
+                         ].map((item, i) => item.value ? (
+                           <div key={i} className="bg-card p-4 rounded-xl border border-border">
+                             <div className="text-[9px] font-black text-txt3 uppercase tracking-widest mb-1">{item.label}</div>
+                             <p className="text-xs text-txt2 leading-relaxed">{item.value}</p>
+                           </div>
+                         ) : null)}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Response Log */}
                 <div className="space-y-6">

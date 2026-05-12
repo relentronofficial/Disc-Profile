@@ -11,8 +11,22 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
   try {
     const scores = computeScores(answers);
     
-    // Exact dominant type logic from "bot changed"
-    const dominant = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0] as "D" | "I" | "S" | "C";
+    // 1. Fetch Profile Configs for Analysis
+    const { data: profileRes } = await supabase.from('disc_profiles').select('*');
+    const profiles: Record<string, any> = {};
+    if (profileRes) {
+      profileRes.forEach(p => {
+        profiles[p.letter] = {
+          ...p,
+          dimColor: p.dim_color,
+          traits: p.traits || { summary: "", communication: "", decisionMaking: "", stressResponse: "", leadership: "", growth: "" }
+        };
+      });
+    }
+
+    // 2. Run Full Analysis
+    const analysis = analyzeDiscProfile(scores, profiles as any);
+    const dominant = analysis.primaryType;
 
     console.log("Saving assessment for:", userData.name);
 
@@ -33,7 +47,16 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
         score_i: scores.I,
         score_s: scores.S,
         score_c: scores.C,
-        dominant_type: dominant
+        dominant_type: dominant,
+        secondary_type: analysis.secondaryType,
+        blend_label: analysis.profileLabel,
+        intensity_level: analysis.intensity,
+        behavioral_summary: analysis.insights.profileIdentity,
+        communication_style: analysis.communication,
+        decision_making: analysis.decisionMaking,
+        leadership_style: analysis.leadership,
+        stress_response: analysis.stressResponse,
+        growth_recommendations: analysis.growth
       })
       .select()
       .single();
