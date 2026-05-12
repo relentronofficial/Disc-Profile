@@ -1,0 +1,187 @@
+Currently the application architecture is already working properly with the existing Supabase structure and assessment flow.
+
+Existing Working System:
+The current database already contains:
+
+* `assessments`
+* `answers`
+* `questions`
+* `disc_profiles`
+
+The application currently supports:
+
+* adding questions from admin panel
+* displaying questions in frontend assessment flow
+* saving assessment results
+* storing answers correctly
+* admin result viewing
+* DISC profile handling
+
+Important:
+The application is currently stable and working very well.
+
+VERY IMPORTANT REQUIREMENT:
+Do NOT break or refactor the existing working assessment flow.
+Do NOT change existing UI/UX behavior unnecessarily.
+Do NOT modify working submission logic.
+Do NOT break admin assessment result display.
+Do NOT remove existing question functionality.
+
+This task should be implemented as an EXTENSION to the current architecture — not a rewrite.
+
+Problem:
+Right now the application only supports one universal question set.
+
+But DISC assessments are intended for multiple audience types, so one common question set is not enough.
+
+Required Goal:
+Transform the current single-question-set system into a scalable multi-audience assessment platform while preserving all existing functionality.
+
+Required Feature:
+Create a Question Set Management System inside the admin panel.
+
+New Architecture Requirement:
+Keep the existing `questions` table intact.
+
+Extend the current database structure safely by introducing:
+
+* assessment categories
+* question sets
+* question-to-set mapping
+
+Do NOT remove existing columns or tables.
+
+Recommended Supabase Changes:
+
+1. Create `assessment_categories` table
+
+Fields:
+
+* id
+* name
+* slug
+* description
+* status
+* created_at
+
+Example Categories:
+
+* Students
+* Entrepreneurs
+* Employees
+* Managers
+* Sales Teams
+* Business Owners
+* Leadership
+* College Students
+* Corporate Teams
+
+2. Create `question_sets` table
+
+Fields:
+
+* id
+* category_id (FK)
+* title
+* description
+* target_audience
+* version
+* status
+* total_questions
+* created_at
+
+3. Create `question_set_questions` mapping table
+
+Fields:
+
+* id
+* question_set_id (FK)
+* question_id (FK)
+* display_order
+* created_at
+
+Important:
+Use mapping architecture instead of modifying the existing `questions` table heavily.
+
+Reason:
+
+* preserves backward compatibility
+* avoids breaking current assessment flow
+* allows question reuse across multiple sets
+* scalable for future growth
+
+Admin Panel Requirements:
+
+Create a new Question Set Management module.
+
+Admin should be able to:
+
+* Create Category
+* Edit Category
+* Delete Category
+* Create Question Set
+* Edit Question Set
+* Delete Question Set
+* Assign questions into sets
+* Reorder questions
+* Duplicate question sets
+* Activate/Deactivate sets
+* Preview frontend flow
+* Filter questions by category/set
+
+Frontend Behavior:
+
+Current frontend assessment flow should remain working.
+
+New enhancement:
+
+* User first selects assessment category OR receives category dynamically
+* Based on selected category, fetch the related question set
+* Load only mapped questions from that set
+* Existing question rendering UI should remain unchanged
+
+Important:
+Do NOT redesign the current assessment UI.
+Reuse the existing question components and answer flow.
+
+Backend Logic Requirements:
+
+* Preserve current answer submission structure
+* Preserve existing assessments table
+* Preserve existing answers table
+* Preserve DISC scoring logic
+* Only extend question fetching/filtering logic
+
+Backward Compatibility:
+Existing assessments and questions should continue working even if no category/set is selected.
+
+If older questions exist:
+
+* they should still function normally
+* migration should not break old data
+
+Technical Requirements:
+
+* Use scalable relational architecture
+* Add proper foreign keys
+* Maintain Supabase RLS compatibility
+* Avoid duplicate question storage
+* Use reusable question mapping system
+
+Expected Result:
+The application should support:
+
+* multiple assessment categories
+* multiple DISC question sets
+* audience-specific assessments
+* scalable future growth
+
+WITHOUT affecting:
+
+* current working assessment flow
+* current admin functionality
+* current frontend UI
+* current result system
+* current responsive improvements
+
+This should feel like a professional scalable extension to the existing system — not a rebuild.

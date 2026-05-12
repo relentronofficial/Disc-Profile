@@ -16,6 +16,11 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
 
     console.log("Saving assessment for:", userData.name);
 
+    // Validate categoryId is a valid UUID string if it exists
+    const categoryId = (userData.categoryId && userData.categoryId.trim() !== "") 
+      ? userData.categoryId 
+      : null;
+
     const { data: assessment, error: assessmentError } = await supabase
       .from('assessments')
       .insert({
@@ -23,6 +28,7 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
         mobile_number: userData.mobile,
         city: userData.city,
         business: userData.biz,
+        category_id: categoryId,
         score_d: scores.D,
         score_i: scores.I,
         score_s: scores.S,
@@ -33,7 +39,18 @@ export async function saveAssessmentResult(userData: UserData, answers: Record<n
       .single();
 
     if (assessmentError) {
-      console.error("Supabase Assessment Error:", assessmentError);
+      console.error("Supabase Assessment Error:", {
+        message: assessmentError.message,
+        details: assessmentError.details,
+        hint: assessmentError.hint,
+        code: assessmentError.code,
+        payload: {
+          full_name: userData.name,
+          mobile_number: userData.mobile,
+          category_id: categoryId,
+          dominant_type: dominant
+        }
+      });
       return { 
         success: false, 
         error: `Database Insert Failed: ${assessmentError.message}`, 

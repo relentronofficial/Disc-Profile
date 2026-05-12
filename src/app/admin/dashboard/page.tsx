@@ -21,19 +21,31 @@ import {
   Plus,
   Trash2,
   Edit2,
+  Copy,
   X,
   ChevronRight,
+  ArrowUp,
+  ArrowDown,
   User,
   MapPin,
   Briefcase,
   Calendar,
-  Phone
+  Phone,
+  Layers,
+  ListTree
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { AssessmentResult, Question, DiscProfile } from "@/types";
+import { 
+  AssessmentResult, 
+  Question, 
+  DiscProfile, 
+  AssessmentCategory, 
+  QuestionSet, 
+  QuestionSetMapping 
+} from "@/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { seedDatabase } from "@/actions/seed";
+import { seedDatabase, seedEntrepreneurSet } from "@/actions/seed";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -41,6 +53,14 @@ export default function AdminDashboard() {
   const [results, setResults] = useState<AssessmentResult[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [profiles, setProfiles] = useState<DiscProfile[]>([]);
+  
+  // New Question Sets State
+  const [categories, setCategories] = useState<AssessmentCategory[]>([]);
+  const [sets, setSets] = useState<QuestionSet[]>([]);
+  const [activeSetTab, setActiveSetTab] = useState<"categories" | "sets" | "mapping">("categories");
+  const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
+  const [setMappings, setSetMappings] = useState<QuestionSetMapping[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -53,23 +73,64 @@ export default function AdminDashboard() {
 
   // Question Editing State
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingCategory, setEditingCategory] = useState<AssessmentCategory | null>(null);
+  const [editingSet, setEditingSet] = useState<QuestionSet | null>(null);
+  const [selectedCategoryForRegistry, setSelectedCategoryForRegistry] = useState<AssessmentCategory | null>(null);
+  const [registryPoolQuestionIds, setRegistryPoolQuestionIds] = useState<number[]>([]);
+
+  const fetchRegistryPool = useCallback(async (catId: string) => {
+    setLoading(true);
+    try {
+      const { data: setRes } = await supabase
+        .from('question_sets')
+        .select('id')
+        .eq('category_id', catId)
+        .ilike('title', '%Master%')
+        .limit(1)
+        .single();
+      
+      if (setRes) {
+        const { data: mapRes } = await supabase
+          .from('question_set_questions')
+          .select('question_id')
+          .eq('question_set_id', setRes.id)
+          .order('display_order', { ascending: true });
+        
+        if (mapRes) {
+          setRegistryPoolQuestionIds(mapRes.map(m => m.question_id));
+        }
+      } else {
+        setRegistryPoolQuestionIds([]);
+      }
+    } catch (err) {
+      setRegistryPoolQuestionIds([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [resResults, resQuestions, resProfiles] = await Promise.all([
+      const [resResults, resQuestions, resProfiles, resCategories, resSets] = await Promise.all([
         supabase.from('assessments').select('*').order('created_at', { ascending: false }),
         supabase.from('questions').select('*').order('id', { ascending: true }),
-        supabase.from('disc_profiles').select('*').order('letter', { ascending: true })
+        supabase.from('disc_profiles').select('*').order('letter', { ascending: true }),
+        supabase.from('assessment_categories').select('*').order('name', { ascending: true }),
+        supabase.from('question_sets').select('*').order('created_at', { ascending: false })
       ]);
 
       if (resResults.error) throw resResults.error;
       if (resQuestions.error) throw resQuestions.error;
       if (resProfiles.error) throw resProfiles.error;
+      if (resCategories.error) throw resCategories.error;
+      if (resSets.error) throw resSets.error;
 
       setResults(resResults.data || []);
       setQuestions(resQuestions.data || []);
+      setCategories(resCategories.data || []);
+      setSets(resSets.data || []);
       
       const mappedProfiles = (resProfiles.data || []).map((p: any) => ({
         letter: p.letter,
@@ -152,6 +213,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSeedEntrepreneur = async () => {
+    setLoading(true);
+    const res = await seedEntrepreneurSet();
+    if (res.success) {
+      fetchData();
+    } else {
+      alert("Seeding failed: " + res.error);
+      setLoading(false);
+    }
+  };
+
   const handleCreateQuestion = async () => {
     const section = (document.getElementById('new-q-section') as HTMLInputElement).value;
     const tag = (document.getElementById('new-q-tag') as HTMLInputElement).value;
@@ -166,18 +238,70 @@ export default function AdminDashboard() {
 
     setSaving(true);
     try {
-      const { error } = await supabase.from('questions').insert([{
+      const { data: newQ, error } = await supabase.from('questions').insert([{
         section: parseInt(section),
         tag,
         text,
         instruction,
         options: { A: optA, B: optB, C: optC, D: optD }
-      }]);
+      }]).select().single();
+      
       if (error) throw error;
+
+      // Automatically map to the category's master pool if a category is selected
+      if (selectedCategoryForRegistry && newQ) {
+        // 1. Find or Create the "Master Set" for this category
+        let { data: masterSet } = await supabase
+          .from('question_sets')
+          .select('id')
+          .eq('category_id', selectedCategoryForRegistry.id)
+          .ilike('title', '%Master%')
+          .limit(1)
+          .single();
+        
+        if (!masterSet) {
+          // Auto-create a master set if it doesn't exist for this new category
+          const { data: newSet, error: setErr } = await supabase
+            .from('question_sets')
+            .insert([{
+              category_id: selectedCategoryForRegistry.id,
+              title: `${selectedCategoryForRegistry.name} Master Set`,
+              description: `Primary assessment flow for ${selectedCategoryForRegistry.name}`,
+              status: 'active',
+              version: '1.0'
+            }])
+            .select()
+            .single();
+          
+          if (!setErr) masterSet = newSet;
+        }
+        
+        if (masterSet) {
+          // 2. Map the question to the pool
+          const { data: mappings } = await supabase
+            .from('question_set_questions')
+            .select('display_order')
+            .eq('question_set_id', masterSet.id)
+            .order('display_order', { ascending: false })
+            .limit(1);
+          
+          const nextOrder = mappings && mappings.length > 0 ? mappings[0].display_order + 1 : 1;
+
+          await supabase.from('question_set_questions').insert({
+            question_set_id: masterSet.id,
+            question_id: newQ.id,
+            display_order: nextOrder
+          });
+        }
+      }
+
       ['new-q-tag', 'new-q-text', 'new-q-instruction', 'new-q-a', 'new-q-b', 'new-q-c', 'new-q-d'].forEach(id => {
         (document.getElementById(id) as any).value = "";
       });
-      fetchData();
+      await fetchData();
+      if (selectedCategoryForRegistry) {
+        await fetchRegistryPool(selectedCategoryForRegistry.id);
+      }
     } catch (err: any) { alert(err.message); } finally { setSaving(false); }
   };
 
@@ -199,7 +323,14 @@ export default function AdminDashboard() {
     try {
       const { error } = await supabase.from('questions').delete().eq('id', id);
       if (error) throw error;
-      setQuestions(questions.filter(q => q.id !== id));
+      
+      // Update local state immediately for instant re-numbering shift
+      setQuestions(prev => prev.filter(q => q.id !== id));
+      setRegistryPoolQuestionIds(prev => prev.filter(qId => qId !== id));
+      
+      if (selectedCategoryForRegistry) {
+        await fetchRegistryPool(selectedCategoryForRegistry.id);
+      }
     } catch (err: any) { alert(err.message); } finally { setLoading(false); }
   };
 
@@ -258,6 +389,144 @@ export default function AdminDashboard() {
     } catch (err: any) { alert(err.message); } finally { setSaving(false); }
   };
 
+  const handleUpdateCategory = async (c: AssessmentCategory) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('assessment_categories').update({
+        name: c.name, slug: c.slug, description: c.description
+      }).eq('id', c.id);
+      if (error) throw error;
+      setEditingCategory(null);
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleUpdateSet = async (s: QuestionSet) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('question_sets').update({
+        title: s.title, description: s.description, target_audience: s.target_audience, version: s.version, category_id: s.category_id, status: s.status
+      }).eq('id', s.id);
+      if (error) throw error;
+      setEditingSet(null);
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleCreateCategory = async () => {
+    const name = (document.getElementById('cat-name') as HTMLInputElement).value;
+    const slug = (document.getElementById('cat-slug') as HTMLInputElement).value;
+    const desc = (document.getElementById('cat-desc') as HTMLTextAreaElement).value;
+
+    if (!name || !slug) return alert("Name and Slug are required.");
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('assessment_categories').insert([{ name, slug, description: desc, status: 'active' }]);
+      if (error) throw error;
+      (document.getElementById('cat-name') as any).value = "";
+      (document.getElementById('cat-slug') as any).value = "";
+      (document.getElementById('cat-desc') as any).value = "";
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleCreateSet = async () => {
+    const title = (document.getElementById('set-title') as HTMLInputElement).value;
+    const catId = (document.getElementById('set-cat-id') as HTMLSelectElement).value;
+    const target = (document.getElementById('set-target') as HTMLInputElement).value;
+    const desc = (document.getElementById('set-desc') as HTMLTextAreaElement).value;
+
+    if (!title || !catId) return alert("Title and Category are required.");
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('question_sets').insert([{ 
+        title, category_id: catId, target_audience: target, description: desc, status: 'active', version: '1.0' 
+      }]);
+      if (error) throw error;
+      (document.getElementById('set-title') as any).value = "";
+      (document.getElementById('set-target') as any).value = "";
+      (document.getElementById('set-desc') as any).value = "";
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const fetchMappings = async (setId: string) => {
+    const s = sets.find(x => x.id === setId);
+    if (!s) return;
+    setSelectedSet(s);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('question_set_questions')
+        .select('*')
+        .eq('question_set_id', setId)
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      setSetMappings(data || []);
+      setActiveSetTab("mapping");
+    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
+  };
+
+  const handleAddQuestionToSet = async (qId: number) => {
+    if (!selectedSet) return;
+    const nextOrder = setMappings.length > 0 ? Math.max(...setMappings.map(m => m.display_order)) + 1 : 1;
+    try {
+      const { error } = await supabase.from('question_set_questions').insert({
+        question_set_id: selectedSet.id,
+        question_id: qId,
+        display_order: nextOrder
+      });
+      if (error) throw error;
+      fetchMappings(selectedSet.id);
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const handleRemoveQuestionFromSet = async (mId: string) => {
+    if (!selectedSet) return;
+    try {
+      const { error } = await supabase.from('question_set_questions').delete().eq('id', mId);
+      if (error) throw error;
+      fetchMappings(selectedSet.id);
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const handleDuplicateSet = async (s: QuestionSet) => {
+    if (!confirm(`Duplicate "${s.title}"?`)) return;
+    setLoading(true);
+    try {
+      const { data: newSet, error: setError } = await supabase
+        .from('question_sets')
+        .insert([{
+          category_id: s.category_id,
+          title: `${s.title} (Copy)`,
+          description: s.description,
+          target_audience: s.target_audience,
+          version: s.version,
+          status: 'inactive'
+        }])
+        .select()
+        .single();
+      if (setError) throw setError;
+      const { data: mappings, error: fetchError } = await supabase
+        .from('question_set_questions')
+        .select('question_id, display_order')
+        .eq('question_set_id', s.id);
+      if (fetchError) throw fetchError;
+      if (mappings && mappings.length > 0) {
+        const newMappings = mappings.map(m => ({
+          question_set_id: newSet.id,
+          question_id: m.question_id,
+          display_order: m.display_order
+        }));
+        const { error: mapError } = await supabase.from('question_set_questions').insert(newMappings);
+        if (mapError) throw mapError;
+      }
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
+  };
+
   const stats = [
     { label: "Active Respondents", value: results.length, trend: "+12%" },
     { label: "Completion Rate", value: "94%", trend: "Optimal" },
@@ -294,6 +563,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab("questions")} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all", activeTab === "questions" ? "bg-tbt-red-dim text-tbt-red font-bold" : "text-txt2 hover:bg-card hover:text-txt")}>
             <HelpCircle className="w-4 h-4" /> Questions
+          </button>
+          <button onClick={() => setActiveTab("question_sets")} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative", activeTab === "question_sets" ? "bg-tbt-red-dim text-tbt-red font-bold" : "text-txt2 hover:bg-card hover:text-txt")}>
+            <Layers className="w-4 h-4" /> Question Sets
           </button>
           
           <div className="text-[10px] font-bold text-txt3 uppercase tracking-[0.12em] px-3 mb-3 mt-8">System</div>
@@ -387,22 +659,28 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {results.slice(0, 8).map((r, i) => (
-                          <tr key={i} className="border-b border-border last:border-0 hover:bg-card2/50 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white", 
-                                  r.dominant_type === 'D' ? 'bg-tbt-red' : 
-                                  r.dominant_type === 'I' ? 'bg-gold' : 
-                                  r.dominant_type === 'S' ? 'bg-green-primary' : 'bg-blue-primary')}>
-                                  {r.full_name.charAt(0)}
+                        {results.slice(0, 8).map((r, i) => {
+                          const cat = categories.find(c => c.id === r.category_id);
+                          return (
+                            <tr key={i} className="border-b border-border last:border-0 hover:bg-card2/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white", 
+                                    r.dominant_type === 'D' ? 'bg-tbt-red' : 
+                                    r.dominant_type === 'I' ? 'bg-gold' : 
+                                    r.dominant_type === 'S' ? 'bg-green-primary' : 'bg-blue-primary')}>
+                                    {r.full_name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-bold text-txt">{r.full_name}</div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] text-tbt-red font-black uppercase tracking-widest">{cat?.name || "Universal"}</span>
+                                      <span className="text-[9px] text-txt3 font-bold opacity-30">•</span>
+                                      <span className="text-[9px] text-txt3 uppercase tracking-widest font-medium">{r.mobile_number || "No Mobile"}</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <div className="text-sm font-bold text-txt">{r.full_name}</div>
-                                  <div className="text-[10px] text-txt3 uppercase tracking-widest font-medium">{r.mobile_number || "No Mobile"}</div>
-                                </div>
-                              </div>
-                            </td>
+                              </td>
                             <td className="px-6 py-4 text-center">
                               <span className="text-[11px] font-black px-2.5 py-1 rounded-md border border-border bg-surface text-txt">
                                 {r.dominant_type}
@@ -424,9 +702,10 @@ export default function AdminDashboard() {
                               <button onClick={() => fetchDetail(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all"><Eye className="w-4 h-4" /></button>
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                   </div>
                 </div>
               </motion.div>
@@ -477,15 +756,17 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredResults.map((r, i) => (
-                        <tr key={r.id} className="border-b border-border last:border-0 hover:bg-card2/50 transition-colors">
-                          <td className="px-6 py-4 text-xs font-bold text-txt3">{filteredResults.length - i}</td>
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="text-sm font-bold text-txt">{r.full_name}</div>
-                              <div className="text-[10px] text-txt3 uppercase tracking-widest">{r.business || "—"}</div>
-                            </div>
-                          </td>
+                      {filteredResults.map((r, i) => {
+                        const cat = categories.find(c => c.id === r.category_id);
+                        return (
+                          <tr key={r.id} className="border-b border-border last:border-0 hover:bg-card2/50 transition-colors">
+                            <td className="px-6 py-4 text-xs font-bold text-txt3">{filteredResults.length - i}</td>
+                            <td className="px-6 py-4">
+                              <div>
+                                <div className="text-sm font-bold text-txt">{r.full_name}</div>
+                                <div className="text-[10px] text-tbt-red uppercase font-black tracking-widest mt-0.5">{cat?.name || "Universal"}</div>
+                              </div>
+                            </td>
                           <td className="px-6 py-4 text-xs font-semibold text-txt2">{r.mobile_number || "—"}</td>
                           <td className="px-6 py-4 text-xs font-semibold text-txt2">{r.city || "—"}</td>
                           <td className="px-6 py-4 text-center">
@@ -506,7 +787,8 @@ export default function AdminDashboard() {
                             <button onClick={async () => { if(confirm("Delete?")){ await supabase.from('assessments').delete().eq('id', r.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -516,124 +798,416 @@ export default function AdminDashboard() {
             {/* Questions Tab */}
             {activeTab === "questions" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="font-serif text-3xl font-black text-txt">Questionnaire</h1>
-                    <p className="text-sm text-txt3 mt-1 uppercase tracking-widest font-bold">Dynamic assessment engine control</p>
-                  </div>
-                </div>
-
-                {/* CREATE NEW QUESTION FORM */}
-                <div className="bg-card border border-tbt-red-border/30 rounded-2xl overflow-hidden shadow-xl shadow-tbt-red/5">
-                  <div className="p-5 bg-tbt-red-dim border-b border-tbt-red-border/20 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-tbt-red flex items-center justify-center text-white shadow-lg shadow-tbt-red/20"><Plus className="w-4 h-4" /></div>
-                    <span className="text-xs font-black text-tbt-red uppercase tracking-[0.2em]">Add Assessment Scenario</span>
-                  </div>
-                  <div className="p-8 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {!selectedCategoryForRegistry ? (
+                  <>
+                    <div className="flex items-center justify-between">
                       <div>
-                        <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">Section Mapping</label>
-                        <select id="new-q-section" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red appearance-none cursor-pointer">
-                          <option value="1">Section 1 — Reactions</option>
-                          <option value="2">Section 2 — People</option>
-                          <option value="3">Section 3 — Business</option>
-                          <option value="4">Section 4 — Vision</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">Category Tag</label>
-                        <input id="new-q-tag" type="text" placeholder="e.g. MONEY & RISK" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                        <h1 className="font-serif text-3xl font-black text-txt">Scenario Registry</h1>
+                        <p className="text-sm text-txt3 mt-1 uppercase tracking-widest font-bold">Choose a category to manage assessment questions</p>
                       </div>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">Scenario Text / Question</label>
-                      <textarea id="new-q-text" rows={2} placeholder="Describe the situation..." className="w-full bg-surface border border-border rounded-xl p-4 text-sm text-txt outline-none focus:border-tbt-red transition-all resize-none" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">User Guidance / Instruction</label>
-                      <input id="new-q-instruction" type="text" placeholder="e.g. Don't overthink - pick what feels natural." className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                      {[
-                        { l: 'A', name: 'Dominant', color: 'text-tbt-red', border: 'focus:border-tbt-red/40' },
-                        { l: 'B', name: 'Influential', color: 'text-gold', border: 'focus:border-gold/40' },
-                        { l: 'C', name: 'Steady', color: 'text-green-primary', border: 'focus:border-green-primary/40' },
-                        { l: 'D', name: 'Conscientious', color: 'text-blue-primary', border: 'focus:border-blue-primary/40' }
-                      ].map(item => (
-                        <div key={item.l} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label className={cn("text-[10px] uppercase font-black tracking-widest", item.color)}>Option {item.l} — {item.name}</label>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {categories.map((cat, idx) => (
+                        <motion.button
+                          key={cat.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          onClick={() => {
+                            setSelectedCategoryForRegistry(cat);
+                            fetchRegistryPool(cat.id);
+                          }}
+                          className="group relative bg-card border border-border rounded-[2rem] p-8 text-left hover:border-tbt-red/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-tbt-red/5 overflow-hidden"
+                        >
+                          <div className="absolute top-0 left-0 w-1.5 h-full bg-tbt-red scale-y-0 group-hover:scale-y-100 transition-transform duration-500 origin-top" />
+                          <div className="flex flex-col gap-4 relative z-10">
+                            <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center group-hover:bg-tbt-red/10 group-hover:border-tbt-red/20 transition-all">
+                              <ListTree className="w-6 h-6 text-txt3 group-hover:text-tbt-red" />
+                            </div>
+                            <div>
+                              <h3 className="font-serif text-2xl font-black text-txt mb-2 group-hover:text-tbt-red transition-colors">{cat.name}</h3>
+                              <p className="text-xs text-txt3 line-clamp-2 leading-relaxed">{cat.description || "Manage scenarios for this specific audience."}</p>
+                            </div>
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border group-hover:border-tbt-red/10">
+                              <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Active Pool</span>
+                              <ChevronRight className="w-4 h-4 text-tbt-red opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                            </div>
                           </div>
-                          <input id={`new-q-${item.l.toLowerCase()}`} type="text" placeholder={`Scenario for ${item.name} type...`} className={cn("w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none transition-all", item.border)} />
-                        </div>
+                        </motion.button>
                       ))}
                     </div>
-                    <div className="flex justify-end pt-4">
-                      <button onClick={handleCreateQuestion} disabled={saving} className="px-10 py-4 bg-tbt-red text-white text-xs font-black rounded-xl hover:bg-tbt-red-hover transition-all flex items-center gap-2 shadow-xl shadow-tbt-red/20 active:scale-95">
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        PUBLISH TO QUESTIONNAIRE
-                      </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <button 
+                          onClick={() => setSelectedCategoryForRegistry(null)}
+                          className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-txt3 hover:text-tbt-red hover:border-tbt-red transition-all"
+                        >
+                          <ArrowUp className="-rotate-90 w-4 h-4" />
+                        </button>
+                        <div>
+                          <h1 className="font-serif text-3xl font-black text-txt">{selectedCategoryForRegistry.name} Pool</h1>
+                          <p className="text-sm text-txt3 mt-1 uppercase tracking-widest font-bold flex items-center gap-2">
+                            <Layers className="w-3.5 h-3.5" /> Assessment scenario registry control
+                          </p>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* CREATE NEW QUESTION FORM */}
+                    <div className="bg-card border border-tbt-red-border/30 rounded-2xl overflow-hidden shadow-xl shadow-tbt-red/5">
+                      <div className="p-5 bg-tbt-red-dim border-b border-tbt-red-border/20 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-tbt-red flex items-center justify-center text-white shadow-lg shadow-tbt-red/20"><Plus className="w-4 h-4" /></div>
+                        <span className="text-xs font-black text-tbt-red uppercase tracking-[0.2em]">Add Scenario to {selectedCategoryForRegistry.name}</span>
+                      </div>
+                      <div className="p-8 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">Section Mapping</label>
+                            <select id="new-q-section" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red appearance-none cursor-pointer">
+                              <option value="1">Section 1 — Reactions</option>
+                              <option value="2">Section 2 — People</option>
+                              <option value="3">Section 3 — Business</option>
+                              <option value="4">Section 4 — Vision</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">Internal Tag</label>
+                            <input id="new-q-tag" type="text" placeholder="e.g. MONEY & RISK" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">Scenario Text / Question</label>
+                          <textarea id="new-q-text" rows={2} placeholder="Describe the situation..." className="w-full bg-surface border border-border rounded-xl p-4 text-sm text-txt outline-none focus:border-tbt-red transition-all resize-none" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-txt3 uppercase font-black tracking-widest block mb-2">User Guidance / Instruction</label>
+                          <input id="new-q-instruction" type="text" placeholder="e.g. Don't overthink - pick what feels natural." className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                          {[
+                            { l: 'A', name: 'Dominant', color: 'text-tbt-red', border: 'focus:border-tbt-red/40' },
+                            { l: 'B', name: 'Influential', color: 'text-gold', border: 'focus:border-gold/40' },
+                            { l: 'C', name: 'Steady', color: 'text-green-primary', border: 'focus:border-green-primary/40' },
+                            { l: 'D', name: 'Conscientious', color: 'text-blue-primary', border: 'focus:border-blue-primary/40' }
+                          ].map(item => (
+                            <div key={item.l} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className={cn("text-[10px] uppercase font-black tracking-widest", item.color)}>Option {item.l} — {item.name}</label>
+                              </div>
+                              <input id={`new-q-${item.l.toLowerCase()}`} type="text" placeholder={`Scenario for ${item.name} type...`} className={cn("w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none transition-all", item.border)} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex justify-end pt-4">
+                          <button onClick={handleCreateQuestion} disabled={saving} className="px-10 py-4 bg-tbt-red text-white text-xs font-black rounded-xl hover:bg-tbt-red-hover transition-all flex items-center gap-2 shadow-xl shadow-tbt-red/20 active:scale-95">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            PUBLISH TO {selectedCategoryForRegistry.name.toUpperCase()} POOL
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LIST QUESTIONS */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between py-4 border-b border-border">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-4 h-4 text-txt3" />
+                          <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.25em]">Pool Scenarios ({questions.filter(q => registryPoolQuestionIds.includes(q.id)).length})</span>
+                        </div>
+                      </div>
+                      <div className="grid gap-4">
+                        {questions.filter(q => registryPoolQuestionIds.includes(q.id)).map((q, idx) => (
+                          <div key={q.id} className="bg-card border border-border rounded-2xl p-6 hover:border-border2 transition-all group">
+                            {editingQuestion?.id === q.id ? (
+                              <div className="space-y-6">
+                                <div className="grid grid-cols-3 gap-4">
+                                  <input type="number" value={editingQuestion.section} onChange={e => setEditingQuestion({...editingQuestion, section: parseInt(e.target.value)})} className="h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
+                                  <input type="text" value={editingQuestion.tag} onChange={e => setEditingQuestion({...editingQuestion, tag: e.target.value})} className="col-span-2 h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
+                                </div>
+                                <textarea value={editingQuestion.text} onChange={e => setEditingQuestion({...editingQuestion, text: e.target.value})} className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-txt outline-none focus:border-tbt-red" rows={2} />
+                                <div className="grid grid-cols-2 gap-4">
+                                  {Object.entries(editingQuestion.options).map(([l, t]) => (
+                                    <div key={l} className="space-y-1">
+                                      <span className="text-[9px] font-black text-txt3 uppercase">{l} Scoring</span>
+                                      <input type="text" value={t} onChange={e => setEditingQuestion({...editingQuestion, options: {...editingQuestion.options, [l]: e.target.value}})} className="w-full h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                  <button onClick={() => setEditingQuestion(null)} className="p-3 text-txt3 hover:text-txt transition-all"><X className="w-5 h-5" /></button>
+                                  <button onClick={() => handleUpdateQuestion(editingQuestion)} className="bg-tbt-red text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg shadow-tbt-red/10 transition-all">UPDATE</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex justify-between items-start gap-8">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <span className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-[10px] font-black text-tbt-red shadow-sm">#{idx + 1}</span>
+                                    <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.1em] px-2 py-1 bg-surface border border-border rounded-md">SEC {q.section} • {q.tag}</span>
+                                  </div>
+                                  <h4 className="font-serif text-lg font-bold text-txt mb-4 leading-snug">{q.text}</h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                    {Object.entries(q.options).map(([l, t]) => (
+                                      <div key={l} className="flex gap-2.5 text-xs">
+                                        <span className={cn("font-black shrink-0", 
+                                          l === 'A' ? 'text-tbt-red' : l === 'B' ? 'text-gold' : l === 'C' ? 'text-green-primary' : 'text-blue-primary')}>{l}:</span>
+                                        <span className="text-txt3 leading-relaxed line-clamp-1">{t}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => setEditingQuestion(q)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-tbt-red hover:border-tbt-red transition-all"><Edit2 className="w-4 h-4" /></button>
+                                  <button onClick={() => handleDeleteQuestion(q.id)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-red-primary hover:border-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+
+            {/* Question Sets Tab */}
+            {activeTab === "question_sets" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="font-serif text-3xl font-black text-txt">Multi-Audience Engine</h1>
+                    <p className="text-sm text-txt3 mt-1 uppercase tracking-widest font-bold">Manage categories and specialized question sets</p>
                   </div>
+                  <button onClick={handleSeedEntrepreneur} disabled={loading} className="px-5 py-2.5 bg-surface border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-txt2 hover:text-tbt-red hover:border-tbt-red transition-all flex items-center gap-2">
+                    <RefreshCcw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Sync Entrepreneur Set
+                  </button>
                 </div>
 
-                {/* LIST QUESTIONS */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 py-4 border-b border-border">
-                    <FileText className="w-4 h-4 text-txt3" />
-                    <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.25em]">Questionnaire Registry ({questions.length} Active Items)</span>
-                  </div>
-                  <div className="grid gap-4">
-                    {questions.map((q) => (
-                      <div key={q.id} className="bg-card border border-border rounded-2xl p-6 hover:border-border2 transition-all group">
-                        {editingQuestion?.id === q.id ? (
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-3 gap-4">
-                              <input type="number" value={editingQuestion.section} onChange={e => setEditingQuestion({...editingQuestion, section: parseInt(e.target.value)})} className="h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
-                              <input type="text" value={editingQuestion.tag} onChange={e => setEditingQuestion({...editingQuestion, tag: e.target.value})} className="col-span-2 h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
-                            </div>
-                            <textarea value={editingQuestion.text} onChange={e => setEditingQuestion({...editingQuestion, text: e.target.value})} className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-txt outline-none focus:border-tbt-red" rows={2} />
-                            <div className="grid grid-cols-2 gap-4">
-                              {Object.entries(editingQuestion.options).map(([l, t]) => (
-                                <div key={l} className="space-y-1">
-                                  <span className="text-[9px] font-black text-txt3 uppercase">{l} Scoring</span>
-                                  <input type="text" value={t} onChange={e => setEditingQuestion({...editingQuestion, options: {...editingQuestion.options, [l]: e.target.value}})} className="w-full h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex justify-end gap-3">
-                              <button onClick={() => setEditingQuestion(null)} className="p-3 text-txt3 hover:text-txt transition-all"><X className="w-5 h-5" /></button>
-                              <button onClick={() => handleUpdateQuestion(editingQuestion)} className="bg-tbt-red text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg shadow-tbt-red/10 transition-all">UPDATE</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between items-start gap-8">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <span className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-[10px] font-black text-tbt-red shadow-sm">#{q.id}</span>
-                                <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.1em] px-2 py-1 bg-surface border border-border rounded-md">SEC {q.section} • {q.tag}</span>
-                              </div>
-                              <h4 className="font-serif text-lg font-bold text-txt mb-4 leading-snug">{q.text}</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                                {Object.entries(q.options).map(([l, t]) => (
-                                  <div key={l} className="flex gap-2.5 text-xs">
-                                    <span className={cn("font-black shrink-0", 
-                                      l === 'A' ? 'text-tbt-red' : l === 'B' ? 'text-gold' : l === 'C' ? 'text-green-primary' : 'text-blue-primary')}>{l}:</span>
-                                    <span className="text-txt3 leading-relaxed line-clamp-1">{t}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => setEditingQuestion(q)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-tbt-red hover:border-tbt-red transition-all"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={() => handleDeleteQuestion(q.id)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-red-primary hover:border-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                {/* Sub-Navigation */}
+                <div className="flex gap-1 bg-surface p-1 rounded-xl border border-border w-fit">
+                  {[
+                    { id: 'categories', label: 'Categories', icon: ListTree },
+                    { id: 'sets', label: 'Question Sets', icon: Layers },
+                    { id: 'mapping', label: 'Set Mapping', icon: RefreshCcw, disabled: !selectedSet }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => !t.disabled && setActiveSetTab(t.id as any)}
+                      disabled={t.disabled}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+                        activeSetTab === t.id 
+                          ? "bg-tbt-red text-white shadow-lg shadow-tbt-red/20" 
+                          : t.disabled ? "opacity-30 cursor-not-allowed text-txt3" : "text-txt3 hover:text-txt hover:bg-card"
+                      )}
+                    >
+                      <t.icon className="w-3.5 h-3.5" />
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
+
+                <AnimatePresence mode="wait">
+                  {activeSetTab === "categories" && (
+                    <motion.div key="cats" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                      <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Category Name</label>
+                            <input id="cat-name" type="text" placeholder="e.g. Entrepreneurs" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">URL Slug (Unique)</label>
+                            <input id="cat-slug" type="text" placeholder="entrepreneurs" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Description</label>
+                          <textarea id="cat-desc" rows={2} placeholder="Describe this audience..." className="w-full bg-surface border border-border rounded-xl p-4 text-sm text-txt outline-none focus:border-tbt-red transition-all resize-none" />
+                        </div>
+                        <div className="flex justify-end">
+                          <button onClick={handleCreateCategory} disabled={saving} className="px-8 py-3 bg-tbt-red text-white text-[10px] font-black rounded-xl hover:bg-tbt-red-hover transition-all flex items-center gap-2 uppercase tracking-widest">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            Create Category
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {categories.map(c => (
+                          <div key={c.id} className="bg-card border border-border rounded-2xl p-6 hover:border-tbt-red/30 transition-all group">
+                            {editingCategory?.id === c.id ? (
+                              <div className="space-y-4">
+                                <input type="text" value={editingCategory.name} onChange={e => setEditingCategory({...editingCategory, name: e.target.value})} className="w-full h-10 bg-surface border border-border rounded-lg px-3 text-sm text-txt outline-none focus:border-tbt-red" placeholder="Category Name" />
+                                <input type="text" value={editingCategory.slug} onChange={e => setEditingCategory({...editingCategory, slug: e.target.value})} className="w-full h-10 bg-surface border border-border rounded-lg px-3 text-sm text-txt outline-none focus:border-tbt-red" placeholder="slug" />
+                                <textarea value={editingCategory.description || ""} onChange={e => setEditingCategory({...editingCategory, description: e.target.value})} className="w-full bg-surface border border-border rounded-lg p-3 text-sm text-txt outline-none focus:border-tbt-red resize-none" rows={2} placeholder="Description" />
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => setEditingCategory(null)} className="p-2 text-txt3 hover:text-txt"><X className="w-5 h-5" /></button>
+                                  <button onClick={() => handleUpdateCategory(editingCategory)} className="bg-tbt-red text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">Update</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex justify-between items-start mb-4">
+                                  <div>
+                                    <h4 className="font-serif text-xl font-black text-txt">{c.name}</h4>
+                                    <code className="text-[10px] bg-surface px-2 py-0.5 rounded text-tbt-red font-bold uppercase tracking-widest">/{c.slug}</code>
+                                  </div>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => setEditingCategory(c)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all"><Edit2 className="w-4 h-4" /></button>
+                                    <button onClick={async () => { if(confirm("Delete Category?")){ await supabase.from('assessment_categories').delete().eq('id', c.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-txt3 leading-relaxed line-clamp-2">{c.description || "No description provided."}</p>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeSetTab === "sets" && (
+                    <motion.div key="sets" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                      <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Set Title</label>
+                            <input id="set-title" type="text" placeholder="e.g. Core Entrepreneur Assessment v1" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Category</label>
+                            <select id="set-cat-id" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red appearance-none cursor-pointer font-bold">
+                              <option value="">Select a Category</option>
+                              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Target Audience (Short)</label>
+                            <input id="set-target" type="text" placeholder="e.g. Existing Business Owners" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Description / Goal</label>
+                          <textarea id="set-desc" rows={2} placeholder="Purpose of this specific question set..." className="w-full bg-surface border border-border rounded-xl p-4 text-sm text-txt outline-none focus:border-tbt-red transition-all resize-none" />
+                        </div>
+                        <div className="flex justify-end">
+                          <button onClick={handleCreateSet} disabled={saving} className="px-8 py-3 bg-tbt-red text-white text-[10px] font-black rounded-xl hover:bg-tbt-red-hover transition-all flex items-center gap-2 uppercase tracking-widest">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            Create Question Set
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {sets.map(s => (
+                          <div key={s.id} className={cn("bg-card border rounded-2xl p-6 transition-all group relative", selectedSet?.id === s.id ? "border-tbt-red shadow-lg shadow-tbt-red/5" : "border-border hover:border-border2")}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-serif text-xl font-black text-txt">{s.title}</h4>
+                                <span className="text-[9px] bg-tbt-red-dim text-tbt-red px-1.5 py-0.5 rounded font-black">v{s.version}</span>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleDuplicateSet(s)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red hover:bg-tbt-red-dim transition-all" title="Duplicate Set"><Copy className="w-4 h-4" /></button>
+                                <button onClick={() => fetchMappings(s.id)} className="p-2 rounded-lg bg-surface border border-border text-tbt-red hover:bg-tbt-red-dim transition-all" title="Manage Mappings"><RefreshCcw className="w-4 h-4" /></button>
+                                <button onClick={async () => { if(confirm("Delete Set?")){ await supabase.from('question_sets').delete().eq('id', s.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all" title="Delete Set"><Trash2 className="w-4 h-4" /></button>
+                              </div>                            </div>
+                            <div className="text-[10px] font-black text-txt3 uppercase tracking-widest mb-4 flex items-center gap-2">
+                              <ListTree className="w-3 h-3" /> {categories.find(c => c.id === s.category_id)?.name || "Uncategorized"}
+                            </div>
+                            <p className="text-xs text-txt3 mb-6 line-clamp-2">{s.description || "No description provided."}</p>
+                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+                              <div className="text-[10px] font-bold text-txt3 uppercase tracking-widest">Target: <span className="text-txt2">{s.target_audience || "Universal"}</span></div>
+                              <button onClick={() => fetchMappings(s.id)} className="text-[10px] font-black text-tbt-red uppercase tracking-widest hover:underline">Manage Mapping →</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeSetTab === "mapping" && selectedSet && (
+                    <motion.div key="mapping" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Left: Questions in this Set */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-tbt-red/5 border border-tbt-red/10 rounded-xl">
+                          <div>
+                            <div className="text-[10px] font-black text-tbt-red uppercase tracking-[0.2em]">Active Selection</div>
+                            <div className="text-sm font-black text-txt">{selectedSet.title}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[10px] font-black text-txt3 uppercase tracking-widest">Questions</div>
+                            <div className="text-xl font-black text-tbt-red">{setMappings.length}</div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <h4 className="text-[10px] font-black text-txt3 uppercase tracking-widest border-b border-border pb-2">Mapped Scenarios</h4>
+                          {setMappings.length === 0 && (
+                            <div className="p-8 text-center border-2 border-dashed border-border rounded-2xl text-txt3 text-xs italic">
+                              No questions mapped to this set yet. Add from the registry.
+                            </div>
+                          )}
+                          <div className="grid gap-3">
+                            {setMappings.map((m, idx) => {
+                              const q = questions.find(x => x.id === m.question_id);
+                              return (
+                                <div key={m.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 group">
+                                  <div className="w-6 h-6 rounded bg-surface border border-border flex items-center justify-center text-[10px] font-black text-tbt-red">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[10px] font-black text-txt3 uppercase tracking-widest mb-0.5">#{q?.id} • {q?.tag}</div>
+                                    <div className="text-xs font-bold text-txt truncate">{q?.text}</div>
+                                  </div>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleMoveMapping(m, 'up')} disabled={idx === 0} className="p-1.5 text-txt3 hover:text-tbt-red disabled:opacity-20" title="Move Up"><ArrowUp className="w-3.5 h-3.5" /></button>
+                                    <button onClick={() => handleMoveMapping(m, 'down')} disabled={idx === setMappings.length - 1} className="p-1.5 text-txt3 hover:text-tbt-red disabled:opacity-20" title="Move Down"><ArrowDown className="w-3.5 h-3.5" /></button>
+                                    <button onClick={() => handleRemoveQuestionFromSet(m.id)} className="p-1.5 text-txt3 hover:text-red-primary ml-1" title="Remove Mapping"><X className="w-4 h-4" /></button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Master Question Registry Picker */}
+                      <div className="space-y-4">
+                        <div className="p-4 bg-surface border border-border rounded-xl">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-txt3" />
+                            <input type="text" placeholder="Search Master Registry..." className="w-full h-9 bg-card border border-border rounded-lg pl-9 pr-4 text-xs text-txt outline-none focus:border-tbt-red" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                          <h4 className="text-[10px] font-black text-txt3 uppercase tracking-widest border-b border-border pb-2 sticky top-0 bg-bg z-10">Available Registry Items</h4>
+                          <div className="grid gap-3">
+                            {questions.filter(q => !setMappings.find(m => m.question_id === q.id)).map(q => (
+                              <button key={q.id} onClick={() => handleAddQuestionToSet(q.id)} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4 hover:border-tbt-red/40 text-left transition-all group">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[10px] font-black text-txt3 uppercase tracking-widest mb-0.5">SEC {q.section} • {q.tag}</div>
+                                  <div className="text-xs font-bold text-txt line-clamp-1">{q.text}</div>
+                                </div>
+                                <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-txt3 group-hover:text-tbt-red group-hover:bg-tbt-red-dim transition-all">
+                                  <Plus className="w-4 h-4" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
@@ -714,7 +1288,11 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h2 className="font-serif text-2xl font-black text-txt">{selectedResult.full_name}</h2>
-                    <p className="text-xs text-txt3 uppercase tracking-widest font-bold">Submission Report • {selectedResult.id?.slice(0,8)}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-tbt-red font-black uppercase tracking-widest">{categories.find(c => c.id === selectedResult.category_id)?.name || "Universal Profile"}</span>
+                      <span className="text-[10px] text-txt3 font-bold opacity-30">•</span>
+                      <p className="text-[10px] text-txt3 uppercase tracking-widest font-bold">Report #{selectedResult.id?.slice(0,8)}</p>
+                    </div>
                   </div>
                 </div>
                 <button onClick={() => setSelectedResult(null)} className="p-3 text-txt3 hover:text-txt transition-all"><X className="w-6 h-6" /></button>

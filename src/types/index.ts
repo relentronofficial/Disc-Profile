@@ -90,6 +90,37 @@ export interface UserData {
   city: string;
   biz: string;
   date: string;
+  categoryId?: string;
+  questionSetId?: string;
+}
+
+export interface AssessmentCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  status: 'active' | 'inactive';
+  created_at?: string;
+}
+
+export interface QuestionSet {
+  id: string;
+  category_id: string;
+  title: string;
+  description: string;
+  target_audience: string;
+  version: string;
+  status: 'active' | 'inactive';
+  total_questions: number;
+  created_at?: string;
+}
+
+export interface QuestionSetMapping {
+  id: string;
+  question_set_id: string;
+  question_id: number;
+  display_order: number;
+  created_at?: string;
 }
 
 export interface Answer {
@@ -99,6 +130,7 @@ export interface Answer {
 
 export interface AssessmentResult {
   id?: string;
+  category_id?: string;
   full_name: string;
   mobile_number: string;
   city: string;

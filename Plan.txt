@@ -1,0 +1,85 @@
+1 # Plan: Multi-Audience Question Sets Extension
+    2
+    3 Extend the current DISC assessment platform to support multiple audience types through categories and question sets, while preserving the existing
+      stable architecture and UI/UX.
+    4
+    5 ## 1. Database Schema Extensions (Supabase)
+    6
+    7 Create three new tables to manage the hierarchy of assessments.
+    8
+    9 ### 1.1 `assessment_categories`
+   10 Stores high-level categories (e.g., Entrepreneurs, Students).
+   11 - `id`: UUID (Primary Key)
+   12 - `name`: TEXT (Unique)
+   13 - `slug`: TEXT (Unique)
+   14 - `description`: TEXT
+   15 - `status`: TEXT ('active', 'inactive')
+   16 - `created_at`: TIMESTAMP
+   17
+   18 ### 1.2 `question_sets`
+   19 Defines specific sets of questions within a category.
+   20 - `id`: UUID (Primary Key)
+   21 - `category_id`: UUID (Foreign Key to `assessment_categories.id`)
+   22 - `title`: TEXT
+   23 - `description`: TEXT
+   24 - `target_audience`: TEXT
+   25 - `version`: TEXT
+   26 - `status`: TEXT ('active', 'inactive')
+   27 - `total_questions`: INTEGER
+   28 - `created_at`: TIMESTAMP
+   29
+   30 ### 1.3 `question_set_questions`
+   31 Mapping table between questions and sets to allow reuse and reordering.
+   32 - `id`: UUID (Primary Key)
+   33 - `question_set_id`: UUID (Foreign Key to `question_sets.id`)
+   34 - `question_id`: INTEGER (Foreign Key to `questions.id`)
+   35 - `display_order`: INTEGER
+   36 - `created_at`: TIMESTAMP
+   37 - *Unique Constraint*: (`question_set_id`, `question_id`)
+   38
+   39 ## 2. Types & Interface Updates
+   40 Update `src/types/index.ts` to include the new data structures and update `UserData` to support category/set selection.
+   41
+   42 ## 3. Admin Panel Enhancements (`src/app/admin/dashboard/page.tsx`)
+   43
+   44 ### 3.1 Sidebar & Navigation
+   45 - Add "Question Sets" tab.
+   46 - Sub-tabs within Question Sets: "Categories" and "Sets".
+   47
+   48 ### 3.2 Categories Management
+   49 - List, Create, Edit, and Delete categories.
+   50
+   51 ### 3.3 Question Sets Management
+   52 - List, Create, Edit, and Delete sets.
+   53 - **Set Mapping UI**: A specialized interface to pick questions from the master `questions` table and assign them to a set with a specific
+      `display_order`.
+   54 - **Duplicate Action**: Quickly clone a question set.
+   55
+   56 ## 4. Frontend Flow Integration
+   57
+   58 ### 4.1 Landing Page (`src/components/assessment/Landing.tsx`)
+   59 - Fetch active categories from Supabase.
+   60 - Add a dropdown for users to select their "Category" (e.g., "I am an Entrepreneur").
+   61 - Pass the selected `categoryId` or its active `questionSetId` to the main flow.
+   62
+   63 ### 4.2 Application State (`src/app/page.tsx`)
+   64 - Store `selectedSetId` in the application state.
+   65 - Pass `selectedSetId` to the `Questionnaire` component.
+   66
+   67 ### 4.3 Questionnaire Fetching (`src/components/assessment/Questionnaire.tsx`)
+   68 - Update `useEffect` to fetch questions via the `question_set_questions` mapping table if a `selectedSetId` is provided.
+   69 - Fall back to fetching all questions (ordered by ID) if no set is selected (backward compatibility).
+   70
+   71 ## 5. Backward Compatibility & Stability
+   72 - The master `questions` table remains the source of truth for question content.
+   73 - Old assessment results remain valid as they store raw scores/answers and don't strictly depend on the set ID.
+   74 - If a user doesn't select a category, the system will load the default/all questions as it does now.
+   75
+   76 ## 6. Verification Plan
+   77 - **Database**: Run SQL scripts and verify table creation and RLS policies.
+   78 - **Admin**: Verify CRUD operations for Categories and Sets.
+   79 - **Mapping**: Verify questions can be added to sets and reordered.
+   80 - **Frontend**: Verify that selecting a category loads the correct subset/order of questions.
+   81 - **Results**: Verify that completing a categorized assessment still saves results correctly.
+
+  Would you like me to proceed with the implementation or do you have any specific adjustments to this plan?

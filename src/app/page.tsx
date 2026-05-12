@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Landing from "@/components/assessment/Landing";
+import CategorySelection from "@/components/assessment/CategorySelection";
 import IntroScreen from "@/components/assessment/IntroScreen";
 import Questionnaire from "@/components/assessment/Questionnaire";
 import Results from "@/components/assessment/Results";
 import { UserData, Answer } from "@/types";
 import { computeScores } from "@/lib/utils";
 import { saveAssessmentResult } from "@/actions/assessment";
+import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, X, AlertTriangle } from "lucide-react";
 
-type Step = "landing" | "intro" | "questionnaire" | "results";
+type Step = "landing" | "category" | "intro" | "questionnaire" | "results";
 
 const STORAGE_KEY = "tbt_assessment_session";
 
@@ -30,7 +32,7 @@ export default function Home() {
     if (saved) {
       try {
         const { step, userData, answers, currentIdx } = JSON.parse(saved);
-        if (step) setStep(step);
+        if (step) setStep(step as Step);
         if (userData) setUserData(userData);
         if (answers) setAnswers(answers);
         if (typeof currentIdx === 'number') setCurrentIdx(currentIdx);
@@ -53,10 +55,33 @@ export default function Home() {
     }
   }, [step, userData, answers, currentIdx, isLoaded]);
 
-  const handleStart = (data: UserData) => {
+  const handleStart = async (data: UserData) => {
     setUserData(data);
-    setStep("intro");
+    setStep("category");
     setCurrentIdx(0);
+  };
+
+  const handleCategorySelect = async (categoryId: string) => {
+    if (!userData) return;
+
+    let setId = "";
+    // Resolve active sets for this category
+    const { data: setRes } = await supabase
+      .from('question_sets')
+      .select('id, title')
+      .eq('category_id', categoryId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+    
+    if (setRes && setRes.length > 0) {
+      // Prioritize the set with "Master" in the title
+      const masterSet = setRes.find(s => s.title.toLowerCase().includes('master')) || setRes[0];
+      setId = masterSet.id;
+    }
+
+    const updatedData = { ...userData, categoryId, questionSetId: setId };
+    setUserData(updatedData);
+    setStep("intro");
   };
 
   const handleIntroComplete = () => {
@@ -72,8 +97,7 @@ export default function Home() {
       const result = await saveAssessmentResult(userData, finalAnswers);
       if (!result.success) {
         console.error("Failed to save assessment:", result.error);
-        // We could show a toast here if we had a toast library
-        alert("Note: Your results are shown correctly, but there was an issue saving them to the database. Please contact support if you need a permanent record.");
+        alert(`Note: Your results are shown correctly, but there was an issue saving them to the database. \n\nError: ${result.error}\n\nPlease contact support if you need a permanent record.`);
       } else {
         console.log("Assessment saved successfully:", result.data?.id);
       }
@@ -173,14 +197,16 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           {step === "landing" && <Landing onStart={handleStart} />}
+          {step === "category" && <CategorySelection onSelect={handleCategorySelect} />}
           {step === "intro" && <IntroScreen onComplete={handleIntroComplete} />}
           {step === "questionnaire" && (
-            <Questionnaire 
+            <Questionnaire
+              userData={userData!}
               currentIdx={currentIdx}
               setCurrentIdx={setCurrentIdx}
               answers={answers}
               setAnswers={setAnswers}
-              onComplete={handleComplete} 
+              onComplete={handleComplete}
             />
           )}
           {step === "results" && userData && (

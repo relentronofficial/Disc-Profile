@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { UserData } from "@/types";
-import { ArrowRight, Clock, CheckCircle, Lock, AlertCircle, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { UserData, AssessmentCategory } from "@/types";
+import { ArrowRight, Clock, CheckCircle, Lock, AlertCircle, Sparkles, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 
 interface LandingProps {
   onStart: (data: UserData) => void;
@@ -22,6 +24,7 @@ export default function Landing({ onStart }: LandingProps) {
     city: "",
     biz: "",
     date: getToday(),
+    categoryId: ""
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,16 +83,16 @@ export default function Landing({ onStart }: LandingProps) {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-glow-red rounded-full opacity-20 blur-[120px] animate-pulse-slow pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-glow-red rounded-full opacity-10 blur-[120px] animate-pulse-slow [animation-delay:2s] pointer-events-none" />
       
-      <div className="flex flex-col items-center justify-center w-full max-w-[520px] gap-[2vh] md:gap-[4vh]">
+      <div className="flex flex-col items-center justify-center w-full max-w-[520px] gap-[1.5vh] md:gap-[4vh]">
         <div className="text-center">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 border border-white/10 bg-white/5 backdrop-blur-md px-3 py-1 rounded-full mb-3 md:mb-6 relative group"
+            className="inline-flex items-center gap-2 border border-white/10 bg-white/5 backdrop-blur-md px-3 py-1 rounded-full mb-2 md:mb-6 relative group"
           >
             <Sparkles className="w-2.5 h-2.5 text-tbt-red animate-pulse" />
-            <span className="text-[8px] md:text-[9px] font-bold tracking-[0.2em] uppercase text-txt2 group-hover:text-txt transition-colors">
+            <span className="text-[7px] md:text-[9px] font-bold tracking-[0.2em] uppercase text-txt2 group-hover:text-txt transition-colors">
               Tamil Business Tribe Assessment
             </span>
           </motion.div>
@@ -98,8 +101,8 @@ export default function Landing({ onStart }: LandingProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-            className="font-serif font-black leading-tight text-txt mb-2 md:mb-3 text-center tracking-tight"
-            style={{ fontSize: "clamp(1.5rem, 3.5vh + 0.5rem, 3.2rem)" }}
+            className="font-serif font-black leading-tight text-txt mb-1.5 md:mb-3 text-center tracking-tight"
+            style={{ fontSize: "clamp(1.3rem, 3vh + 0.4rem, 3.2rem)" }}
           >
             Your Business <span className="text-gradient-red italic">Mindset</span> Profile
           </motion.h1>
@@ -108,8 +111,8 @@ export default function Landing({ onStart }: LandingProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="text-txt2 leading-relaxed max-w-[540px] mx-auto mb-4 md:mb-8 text-center font-medium opacity-90 px-4 md:px-0"
-            style={{ fontSize: "clamp(0.75rem, 0.8vh + 0.4rem, 0.95rem)" }}
+            className="text-txt2 leading-relaxed max-w-[540px] mx-auto mb-3 md:mb-8 text-center font-medium opacity-90 px-4 md:px-0"
+            style={{ fontSize: "clamp(0.7rem, 0.7vh + 0.35rem, 0.95rem)" }}
           >
             Unlock the dynamic DISC framework to decode your entrepreneurial DNA.
           </motion.p>
@@ -118,16 +121,16 @@ export default function Landing({ onStart }: LandingProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex flex-wrap gap-4 md:gap-6 justify-center"
+            className="flex flex-wrap gap-3 md:gap-6 justify-center"
           >
-            <div className="flex items-center gap-1.5 text-[8px] md:text-[9px] text-txt3 font-black uppercase tracking-[0.2em]">
-              <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 text-tbt-red/80" /> 8 Mins
+            <div className="flex items-center gap-1.5 text-[7px] md:text-[9px] text-txt3 font-black uppercase tracking-[0.2em]">
+              <Clock className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-tbt-red/80" /> 8 Mins
             </div>
-            <div className="flex items-center gap-1.5 text-[8px] md:text-[9px] text-txt3 font-black uppercase tracking-[0.2em]">
-              <CheckCircle className="w-3 h-3 md:w-3.5 md:h-3.5 text-tbt-red/80" /> DISC Logic
+            <div className="flex items-center gap-1.5 text-[7px] md:text-[9px] text-txt3 font-black uppercase tracking-[0.2em]">
+              <CheckCircle className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-tbt-red/80" /> DISC Logic
             </div>
-            <div className="flex items-center gap-1.5 text-[8px] md:text-[9px] text-txt3 font-black uppercase tracking-[0.2em]">
-              <Lock className="w-3 h-3 md:w-3.5 md:h-3.5 text-tbt-red/80" /> Private
+            <div className="flex items-center gap-1.5 text-[7px] md:text-[9px] text-txt3 font-black uppercase tracking-[0.2em]">
+              <Lock className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-tbt-red/80" /> Private
             </div>
           </motion.div>
         </div>
@@ -136,20 +139,20 @@ export default function Landing({ onStart }: LandingProps) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-10 w-full text-left relative shadow-2xl shadow-black/50 mx-4"
+          className="bg-[#0a0a0a] border border-white/5 rounded-[1.2rem] md:rounded-[2rem] p-5 md:p-10 w-full text-left relative shadow-2xl shadow-black/50 mx-4"
         >
-          <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 md:pb-4 border-b border-white/5">
+          <div className="flex items-center justify-between mb-3 md:mb-6 pb-2 md:pb-4 border-b border-white/5">
             <div>
-              <div className="text-[9px] md:text-[10px] font-black text-txt uppercase tracking-[0.2em] mb-0.5">Respondent Intake</div>
-              <div className="text-[8px] md:text-[9px] text-txt3 font-medium">Professional details required.</div>
+              <div className="text-[8px] md:text-[10px] font-black text-txt uppercase tracking-[0.2em] mb-0.5">Respondent Intake</div>
+              <div className="text-[7px] md:text-[9px] text-txt3 font-medium">Professional details required.</div>
             </div>
-            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-tbt-red shadow-[0_0_8px_rgba(204,0,0,0.5)] animate-pulse" />
+            <div className="w-1 h-1 md:w-2 md:h-2 rounded-full bg-tbt-red shadow-[0_0_8px_rgba(204,0,0,0.5)] animate-pulse" />
           </div>
           
-          <div className="space-y-3 md:space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <div className="space-y-2 md:space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
               <div className="space-y-1">
-                <label className="text-[8px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
+                <label className="text-[7px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
                   Full Name
                 </label>
                 <input
@@ -160,7 +163,7 @@ export default function Landing({ onStart }: LandingProps) {
                     setFormData({ ...formData, name: e.target.value });
                     if (errors.name) setErrors({...errors, name: ""});
                   }}
-                  className={inputClasses("name")}
+                  className={cn(inputClasses("name"), "h-9 md:h-11")}
                 />
                 <AnimatePresence>
                   {errors.name && (
@@ -168,7 +171,7 @@ export default function Landing({ onStart }: LandingProps) {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="text-[8px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
+                      className="text-[7px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
                     >
                       <AlertCircle className="w-2.5 h-2.5" /> {errors.name}
                     </motion.span>
@@ -177,7 +180,7 @@ export default function Landing({ onStart }: LandingProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[8px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
+                <label className="text-[7px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
                   WhatsApp
                 </label>
                 <input
@@ -192,7 +195,7 @@ export default function Landing({ onStart }: LandingProps) {
                     setFormData({ ...formData, mobile: val });
                     if (errors.mobile) setErrors({...errors, mobile: ""});
                   }}
-                  className={inputClasses("mobile")}
+                  className={cn(inputClasses("mobile"), "h-9 md:h-11")}
                 />
                 <AnimatePresence>
                   {errors.mobile && (
@@ -200,7 +203,7 @@ export default function Landing({ onStart }: LandingProps) {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="text-[8px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
+                      className="text-[7px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
                     >
                       <AlertCircle className="w-2.5 h-2.5" /> {errors.mobile}
                     </motion.span>
@@ -209,9 +212,9 @@ export default function Landing({ onStart }: LandingProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
               <div className="space-y-1">
-                <label className="text-[8px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
+                <label className="text-[7px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
                   City
                 </label>
                 <input
@@ -222,7 +225,7 @@ export default function Landing({ onStart }: LandingProps) {
                     setFormData({ ...formData, city: e.target.value });
                     if (errors.city) setErrors({...errors, city: ""});
                   }}
-                  className={inputClasses("city")}
+                  className={cn(inputClasses("city"), "h-9 md:h-11")}
                 />
                 <AnimatePresence>
                   {errors.city && (
@@ -230,7 +233,7 @@ export default function Landing({ onStart }: LandingProps) {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="text-[8px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
+                      className="text-[7px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
                     >
                       <AlertCircle className="w-2.5 h-2.5" /> {errors.city}
                     </motion.span>
@@ -238,7 +241,7 @@ export default function Landing({ onStart }: LandingProps) {
                 </AnimatePresence>
               </div>
               <div className="space-y-1">
-                <label className="text-[8px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
+                <label className="text-[7px] md:text-[9px] font-bold text-txt/70 flex items-center gap-2 ml-1 uppercase tracking-wider">
                   Business
                 </label>
                 <input
@@ -249,7 +252,7 @@ export default function Landing({ onStart }: LandingProps) {
                     setFormData({ ...formData, biz: e.target.value });
                     if (errors.biz) setErrors({...errors, biz: ""});
                   }}
-                  className={inputClasses("biz")}
+                  className={cn(inputClasses("biz"), "h-9 md:h-11")}
                 />
                 <AnimatePresence>
                   {errors.biz && (
@@ -257,7 +260,7 @@ export default function Landing({ onStart }: LandingProps) {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="text-[8px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
+                      className="text-[7px] md:text-[9px] text-tbt-red font-semibold flex items-center gap-1 mt-0.5 ml-1"
                     >
                       <AlertCircle className="w-2.5 h-2.5" /> {errors.biz}
                     </motion.span>
@@ -271,7 +274,7 @@ export default function Landing({ onStart }: LandingProps) {
             whileHover={{ scale: 1.01, y: -1 }}
             whileTap={{ scale: 0.99 }}
             onClick={handleStart}
-            className="w-full h-11 md:h-12 mt-6 md:mt-8 bg-tbt-red hover:bg-tbt-red-hover transition-all duration-300 rounded-xl font-sans text-[10px] md:text-xs font-black text-white flex items-center justify-center gap-2.5 shadow-xl shadow-tbt-red/20 relative overflow-hidden group/btn"
+            className="w-full h-10 md:h-12 mt-5 md:mt-8 bg-tbt-red hover:bg-tbt-red-hover transition-all duration-300 rounded-xl font-sans text-[9px] md:text-xs font-black text-white flex items-center justify-center gap-2.5 shadow-xl shadow-tbt-red/20 relative overflow-hidden group/btn"
           >
             <span className="relative z-10 flex items-center gap-2 tracking-widest uppercase">
               BEGIN DISCOVERY
@@ -280,8 +283,8 @@ export default function Landing({ onStart }: LandingProps) {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
           </motion.button>
           
-          <div className="mt-4 md:mt-5 text-center">
-            <p className="text-[8px] md:text-[9px] text-txt3 font-medium flex items-center justify-center gap-2">
+          <div className="mt-3 md:mt-5 text-center">
+            <p className="text-[7px] md:text-[9px] text-txt3 font-medium flex items-center justify-center gap-2">
               <Lock className="w-2.5 h-2.5" /> Secure & Confidential
             </p>
           </div>

@@ -64,9 +64,9 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.2, ease: "easeOut" }}
-        className="w-full md:w-1/2 flex items-center justify-center mt-[10vh] md:mt-0 flex-1 min-h-0"
+        className="w-full md:w-1/2 flex items-center justify-center mt-[7vh] md:mt-0 flex-1 min-h-0"
       >
-        <div className="w-full max-w-[240px] xs:max-w-[280px] sm:max-w-[340px] md:max-w-[450px] lg:max-w-[500px] aspect-square relative">
+        <div className="w-full max-w-[200px] xs:max-w-[240px] sm:max-w-[340px] md:max-w-[450px] lg:max-w-[500px] aspect-square relative">
           <Lottie 
             animationData={animationData} 
             loop={true}
@@ -76,9 +76,9 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
       </motion.div>
 
       {/* Right/Bottom Section: Instructions & CTA */}
-      <div className="w-full md:w-1/2 flex flex-col items-center md:items-start justify-center md:pl-[6vw] flex-[1.2] md:flex-1 min-h-0 z-10 pb-[4vh] md:pb-0 gap-[4vh]">
+      <div className="w-full md:w-1/2 flex flex-col items-center md:items-start justify-center md:pl-[6vw] flex-[1.2] md:flex-1 min-h-0 z-10 pb-[2vh] md:pb-0 gap-[2vh] md:gap-[4vh]">
         {/* Text Container */}
-        <div className="space-y-[2vh] md:space-y-[2.5vh] w-full flex flex-col justify-center items-center md:items-start overflow-hidden">
+        <div className="space-y-[1.5vh] md:space-y-[2.5vh] w-full flex flex-col justify-center items-center md:items-start overflow-hidden">
           {INSTRUCTIONS.map((text, index) => (
             <motion.p
               key={index}
@@ -94,7 +94,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
               }}
               className="font-medium leading-[1.4] tracking-tight text-center md:text-left px-4"
               style={{
-                fontSize: "clamp(0.9rem, 1.2vh + 0.5vw, 1.35rem)",
+                fontSize: "clamp(0.85rem, 1vh + 0.4vw, 1.35rem)",
                 maxWidth: "min(90vw, 500px)",
                 color: visibleIndex === index ? "var(--color-txt)" : "var(--color-txt3)"
               }}
@@ -105,7 +105,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         </div>
 
         {/* Start Button Container */}
-        <div className="h-[12vh] flex items-center mt-2">
+        <div className="h-[10vh] flex items-center mt-0">
           <AnimatePresence>
             {showButton && (
               <motion.button
@@ -115,10 +115,10 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onComplete}
-                className="group relative inline-flex items-center gap-3 px-10 py-[2vh] bg-tbt-red rounded-xl text-white font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(204,0,0,0.3)] transition-all overflow-hidden uppercase"
+                className="group relative inline-flex items-center gap-3 px-10 py-[1.5vh] md:py-[2vh] bg-tbt-red rounded-xl text-white font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(204,0,0,0.3)] transition-all overflow-hidden uppercase"
                 style={{
-                  fontSize: "clamp(0.7rem, 0.8vh + 0.3vw, 0.85rem)",
-                  minHeight: "48px"
+                  fontSize: "clamp(0.7rem, 0.7vh + 0.3vw, 0.85rem)",
+                  minHeight: "44px"
                 }}
               >
                 <span className="relative z-10">Start Assessment</span>
