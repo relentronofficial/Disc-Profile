@@ -15,7 +15,7 @@ function shuffleQuestionOptions(q: any) {
   ["A", "B", "C", "D"].forEach((letter, index) => {
     const disc = shuffledDisc[index];
     // Find original option that had this disc
-    const originalOption = Object.values(q.options).find(opt => 
+    const originalOption = Object.values(q.options).find((opt: any) => 
       (typeof opt === 'string' ? false : opt.disc === disc)
     ) as any;
     
