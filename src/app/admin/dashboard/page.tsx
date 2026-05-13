@@ -45,7 +45,7 @@ import {
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { seedDatabase, seedEntrepreneurSet } from "@/actions/seed";
+import { seedDatabase, seedEntrepreneurSet, seedEmployeeSet } from "@/actions/seed";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -59,6 +59,7 @@ export default function AdminDashboard() {
   const [sets, setSets] = useState<QuestionSet[]>([]);
   const [activeSetTab, setActiveSetTab] = useState<"categories" | "sets" | "mapping">("categories");
   const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
+  const [questionStatusFilter, setQuestionStatusFilter] = useState<'active' | 'inactive'>('active');
   const [setMappings, setSetMappings] = useState<QuestionSetMapping[]>([]);
   
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,8 @@ export default function AdminDashboard() {
   // Detail Drawer State
   const [selectedResult, setSelectedResult] = useState<AssessmentResult | null>(null);
   const [resultAnswers, setResultAnswers] = useState<any[]>([]);
+  const [fetchingDetail, setFetchingDetail] = useState(false);
+  const [resultToDelete, setResultToDelete] = useState<AssessmentResult | null>(null);
 
   // Question Editing State
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
@@ -141,7 +144,15 @@ export default function AdminDashboard() {
         edge: p.edge,
         pattern: p.pattern,
         watch: p.watch,
-        prescription: p.prescription
+        prescription: p.prescription,
+        traits: p.traits || {
+          summary: "",
+          communication: "",
+          decisionMaking: "",
+          stressResponse: "",
+          leadership: "",
+          growth: ""
+        }
       })) as DiscProfile[];
       
       // Explicitly sort as D -> I -> S -> C
@@ -191,20 +202,29 @@ export default function AdminDashboard() {
 
   const fetchDetail = async (result: AssessmentResult) => {
     setSelectedResult(result);
-    const { data, error } = await supabase
-      .from('answers')
-      .select('*')
-      .eq('assessment_id', result.id)
-      .order('question_id', { ascending: true });
+    setResultAnswers([]);
+    setFetchingDetail(true);
     
-    if (!error && data) {
-      setResultAnswers(data);
+    try {
+      // Fetch only answers; join with questions is removed as FK relationship is missing in DB
+      const { data, error } = await supabase
+        .from('answers')
+        .select('*')
+        .eq('assessment_id', result.id)
+        .order('question_id', { ascending: true });
+      
+      if (error) throw error;
+      if (data) setResultAnswers(data);
+    } catch (err) {
+      console.error("Error fetching answers:", err);
+    } finally {
+      setFetchingDetail(false);
     }
   };
 
-  const handleSeed = async () => {
+  const handleSeed = async (forceUpdate = false) => {
     setLoading(true);
-    const res = await seedDatabase();
+    const res = await seedDatabase(forceUpdate);
     if (res.success) {
       fetchData();
     } else {
@@ -224,15 +244,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSeedEmployee = async () => {
+    setLoading(true);
+    const res = await seedEmployeeSet();
+    if (res.success) {
+      fetchData();
+    } else {
+      alert("Seeding failed: " + res.error);
+      setLoading(false);
+    }
+  };
+
   const handleCreateQuestion = async () => {
     const section = (document.getElementById('new-q-section') as HTMLInputElement).value;
     const tag = (document.getElementById('new-q-tag') as HTMLInputElement).value;
     const text = (document.getElementById('new-q-text') as HTMLTextAreaElement).value;
     const instruction = (document.getElementById('new-q-instruction') as HTMLInputElement).value;
+    
     const optA = (document.getElementById('new-q-a') as HTMLInputElement).value;
+    const discA = (document.getElementById('new-q-a-disc') as HTMLSelectElement).value;
+    
     const optB = (document.getElementById('new-q-b') as HTMLInputElement).value;
+    const discB = (document.getElementById('new-q-b-disc') as HTMLSelectElement).value;
+    
     const optC = (document.getElementById('new-q-c') as HTMLInputElement).value;
+    const discC = (document.getElementById('new-q-c-disc') as HTMLSelectElement).value;
+    
     const optD = (document.getElementById('new-q-d') as HTMLInputElement).value;
+    const discD = (document.getElementById('new-q-d-disc') as HTMLSelectElement).value;
+    const status = (document.getElementById('new-q-status') as HTMLInputElement).checked ? 'active' : 'inactive';
 
     if (!text || !optA || !optB || !optC || !optD) return alert("Please fill the question text and all 4 options.");
 
@@ -243,7 +283,13 @@ export default function AdminDashboard() {
         tag,
         text,
         instruction,
-        options: { A: optA, B: optB, C: optC, D: optD }
+        status,
+        options: { 
+          A: { text: optA, disc: discA }, 
+          B: { text: optB, disc: discB }, 
+          C: { text: optC, disc: discC }, 
+          D: { text: optD, disc: discD } 
+        }
       }]).select().single();
       
       if (error) throw error;
@@ -309,7 +355,12 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const { error } = await supabase.from('questions').update({
-        section: q.section, tag: q.tag, text: q.text, instruction: q.instruction, options: q.options
+        section: q.section, 
+        tag: q.tag, 
+        text: q.text, 
+        instruction: q.instruction, 
+        status: q.status,
+        options: q.options
       }).eq('id', q.id);
       if (error) throw error;
       setQuestions(questions.map(item => item.id === q.id ? q : item));
@@ -400,7 +451,7 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const { error } = await supabase.from('assessment_categories').update({
-        name: c.name, slug: c.slug, description: c.description
+        name: c.name, slug: c.slug, description: c.description, status: c.status
       }).eq('id', c.id);
       if (error) throw error;
       setEditingCategory(null);
@@ -412,7 +463,7 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const { error } = await supabase.from('question_sets').update({
-        title: s.title, description: s.description, target_audience: s.target_audience, version: s.version, category_id: s.category_id, status: s.status
+        title: s.title, description: s.description, target_audience: s.target_audience, version: s.version, category_id: s.category_id, status: s.status, show_tags: s.show_tags
       }).eq('id', s.id);
       if (error) throw error;
       setEditingSet(null);
@@ -443,18 +494,22 @@ export default function AdminDashboard() {
     const catId = (document.getElementById('set-cat-id') as HTMLSelectElement).value;
     const target = (document.getElementById('set-target') as HTMLInputElement).value;
     const desc = (document.getElementById('set-desc') as HTMLTextAreaElement).value;
+    const showTags = (document.getElementById('set-show-tags') as HTMLInputElement).checked;
+    const status = (document.getElementById('set-status') as HTMLInputElement).checked ? 'active' : 'inactive';
 
     if (!title || !catId) return alert("Title and Category are required.");
 
     setSaving(true);
     try {
       const { error } = await supabase.from('question_sets').insert([{ 
-        title, category_id: catId, target_audience: target, description: desc, status: 'active', version: '1.0' 
+        title, category_id: catId, target_audience: target, description: desc, status, version: '1.0', show_tags: showTags
       }]);
       if (error) throw error;
       (document.getElementById('set-title') as any).value = "";
       (document.getElementById('set-target') as any).value = "";
       (document.getElementById('set-desc') as any).value = "";
+      (document.getElementById('set-show-tags') as HTMLInputElement).checked = true;
+      (document.getElementById('set-status') as HTMLInputElement).checked = true;
       fetchData();
     } catch (err: any) { alert(err.message); } finally { setSaving(false); }
   };
@@ -543,7 +598,8 @@ export default function AdminDashboard() {
           description: s.description,
           target_audience: s.target_audience,
           version: s.version,
-          status: 'inactive'
+          status: 'inactive',
+          show_tags: s.show_tags
         }])
         .select()
         .single();
@@ -564,6 +620,21 @@ export default function AdminDashboard() {
       }
       fetchData();
     } catch (err: any) { alert(err.message); } finally { setLoading(false); }
+  };
+
+  const handleDeleteResult = async () => {
+    if (!resultToDelete) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('assessments').delete().eq('id', resultToDelete.id);
+      if (error) throw error;
+      setResultToDelete(null);
+      await fetchData();
+    } catch (err: any) {
+      alert("Deletion failed: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const stats = [
@@ -737,8 +808,9 @@ export default function AdminDashboard() {
                               </div>
                             </td>
                             <td className="px-6 py-4 text-[11px] text-txt3 font-bold uppercase tracking-tighter">{new Date(r.created_at!).toLocaleDateString('en-GB')}</td>
-                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => fetchDetail(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all"><Eye className="w-4 h-4" /></button>
+                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                              <button onClick={() => fetchDetail(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all" title="View Detail"><Eye className="w-4 h-4" /></button>
+                              <button onClick={() => setResultToDelete(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all" title="Delete Response"><Trash2 className="w-4 h-4" /></button>
                             </td>
                           </tr>
                         );
@@ -822,8 +894,8 @@ export default function AdminDashboard() {
                           <td className="px-6 py-4 text-center text-xs font-bold text-txt2">{r.score_c}</td>
                           <td className="px-6 py-4 text-[11px] text-txt3 font-bold uppercase">{new Date(r.created_at!).toLocaleDateString('en-GB')}</td>
                           <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                            <button onClick={() => fetchDetail(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all"><Eye className="w-4 h-4" /></button>
-                            <button onClick={async () => { if(confirm("Delete?")){ await supabase.from('assessments').delete().eq('id', r.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
+                            <button onClick={() => fetchDetail(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all" title="View Detail"><Eye className="w-4 h-4" /></button>
+                            <button onClick={() => setResultToDelete(r)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all" title="Delete Response"><Trash2 className="w-4 h-4" /></button>
                           </td>
                         </tr>
                         );
@@ -848,19 +920,41 @@ export default function AdminDashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {categories.map((cat, idx) => (
-                        <motion.button
+                        <motion.div
                           key={cat.id}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.05 }}
-                          onClick={() => {
-                            setSelectedCategoryForRegistry(cat);
-                            fetchRegistryPool(cat.id);
-                          }}
                           className="group relative bg-card border border-border rounded-[2rem] p-8 text-left hover:border-tbt-red/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-tbt-red/5 overflow-hidden"
                         >
                           <div className="absolute top-0 left-0 w-1.5 h-full bg-tbt-red scale-y-0 group-hover:scale-y-100 transition-transform duration-500 origin-top" />
-                          <div className="flex flex-col gap-4 relative z-10">
+                          
+                          {/* Status Toggle on Top */}
+                          <div className="absolute top-6 right-6 z-20 flex items-center gap-2">
+                             <span className={cn("text-[8px] font-black uppercase px-1.5 py-0.5 rounded border", (cat.status || 'active') === 'active' ? "bg-green-primary/5 text-green-primary border-green-primary/20" : "bg-txt3/5 text-txt3 border-border")}>{(cat.status || 'active')}</span>
+                             <button 
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 const newStatus = (cat.status || 'active') === 'active' ? 'inactive' : 'active';
+                                 handleUpdateCategory({...cat, status: newStatus});
+                               }}
+                               className={cn(
+                                 "p-2 rounded-lg bg-surface border border-border transition-all shadow-sm",
+                                 (cat.status || 'active') === 'active' ? "text-txt3 hover:text-red-primary" : "text-txt3 hover:text-green-primary"
+                               )}
+                               title={(cat.status || 'active') === 'active' ? "Deactivate Category" : "Activate Category"}
+                             >
+                               <Layers className="w-3.5 h-3.5" />
+                             </button>
+                          </div>
+
+                          <div 
+                            onClick={() => {
+                              setSelectedCategoryForRegistry(cat);
+                              fetchRegistryPool(cat.id);
+                            }}
+                            className="flex flex-col gap-4 relative z-10 cursor-pointer"
+                          >
                             <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center group-hover:bg-tbt-red/10 group-hover:border-tbt-red/20 transition-all">
                               <ListTree className="w-6 h-6 text-txt3 group-hover:text-tbt-red" />
                             </div>
@@ -873,7 +967,7 @@ export default function AdminDashboard() {
                               <ChevronRight className="w-4 h-4 text-tbt-red opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
                             </div>
                           </div>
-                        </motion.button>
+                        </motion.div>
                       ))}
                     </div>
                   </>
@@ -928,20 +1022,36 @@ export default function AdminDashboard() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                           {[
-                            { l: 'A', name: 'Dominant', color: 'text-tbt-red', border: 'focus:border-tbt-red/40' },
-                            { l: 'B', name: 'Influential', color: 'text-gold', border: 'focus:border-gold/40' },
-                            { l: 'C', name: 'Steady', color: 'text-green-primary', border: 'focus:border-green-primary/40' },
-                            { l: 'D', name: 'Conscientious', color: 'text-blue-primary', border: 'focus:border-blue-primary/40' }
+                            { l: 'A', name: 'Dominant', color: 'text-tbt-red', border: 'focus:border-tbt-red/40', defaultDisc: 'D' },
+                            { l: 'B', name: 'Influential', color: 'text-gold', border: 'focus:border-gold/40', defaultDisc: 'I' },
+                            { l: 'C', name: 'Steady', color: 'text-green-primary', border: 'focus:border-green-primary/40', defaultDisc: 'S' },
+                            { l: 'D', name: 'Conscientious', color: 'text-blue-primary', border: 'focus:border-blue-primary/40', defaultDisc: 'C' }
                           ].map(item => (
                             <div key={item.l} className="space-y-2">
                               <div className="flex items-center justify-between">
-                                <label className={cn("text-[10px] uppercase font-black tracking-widest", item.color)}>Option {item.l} — {item.name}</label>
+                                <label className={cn("text-[10px] uppercase font-black tracking-widest", item.color)}>Option {item.l}</label>
+                                <select id={`new-q-${item.l.toLowerCase()}-disc`} defaultValue={item.defaultDisc} className="text-[9px] font-black bg-surface border border-border rounded px-2 py-0.5 outline-none focus:border-tbt-red">
+                                  <option value="D">D (Dominance)</option>
+                                  <option value="I">I (Influence)</option>
+                                  <option value="S">S (Steadiness)</option>
+                                  <option value="C">C (Conscientiousness)</option>
+                                </select>
                               </div>
-                              <input id={`new-q-${item.l.toLowerCase()}`} type="text" placeholder={`Scenario for ${item.name} type...`} className={cn("w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none transition-all", item.border)} />
+                              <input id={`new-q-${item.l.toLowerCase()}`} type="text" placeholder={`Answer text for option ${item.l}...`} className={cn("w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none transition-all", item.border)} />
                             </div>
                           ))}
                         </div>
-                        <div className="flex justify-end pt-4">
+                        <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                          <div className="flex items-center gap-3">
+                            <label className="relative inline-flex items-center cursor-pointer group/toggle">
+                              <input type="checkbox" id="new-q-status" className="sr-only peer" defaultChecked />
+                              <div className="w-11 h-6 bg-border rounded-full peer peer-focus:ring-4 peer-focus:ring-tbt-red/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tbt-red transition-all"></div>
+                            </label>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Initial Status</span>
+                              <span className="text-[9px] text-txt3 opacity-60 uppercase font-bold">Set as Active in Registry</span>
+                            </div>
+                          </div>
                           <button onClick={handleCreateQuestion} disabled={saving} className="px-10 py-4 bg-tbt-red text-white text-xs font-black rounded-xl hover:bg-tbt-red-hover transition-all flex items-center gap-2 shadow-xl shadow-tbt-red/20 active:scale-95">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             PUBLISH TO {selectedCategoryForRegistry.name.toUpperCase()} POOL
@@ -955,30 +1065,73 @@ export default function AdminDashboard() {
                       <div className="flex items-center justify-between py-4 border-b border-border">
                         <div className="flex items-center gap-3">
                           <FileText className="w-4 h-4 text-txt3" />
-                          <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.25em]">Pool Scenarios ({questions.filter(q => registryPoolQuestionIds.includes(q.id)).length})</span>
+                          <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.25em]">Pool Scenarios ({questions.filter(q => registryPoolQuestionIds.includes(q.id) && (q.status || 'active') === questionStatusFilter).length})</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-border">
+                          <button onClick={() => setQuestionStatusFilter('active')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", questionStatusFilter === 'active' ? "bg-tbt-red text-white shadow-lg shadow-tbt-red/10" : "text-txt3 hover:text-txt")}>Active</button>
+                          <button onClick={() => setQuestionStatusFilter('inactive')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", questionStatusFilter === 'inactive' ? "bg-tbt-red text-white shadow-lg shadow-tbt-red/10" : "text-txt3 hover:text-txt")}>Inactive</button>
                         </div>
                       </div>
                       <div className="grid gap-4">
-                        {questions.filter(q => registryPoolQuestionIds.includes(q.id)).map((q, idx) => (
+                        {questions.filter(q => registryPoolQuestionIds.includes(q.id) && (q.status || 'active') === questionStatusFilter).map((q, idx) => (
                           <div key={q.id} className="bg-card border border-border rounded-2xl p-6 hover:border-border2 transition-all group">
                             {editingQuestion?.id === q.id ? (
                               <div className="space-y-6">
-                                <div className="grid grid-cols-3 gap-4">
-                                  <input type="number" value={editingQuestion.section} onChange={e => setEditingQuestion({...editingQuestion, section: parseInt(e.target.value)})} className="h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
-                                  <input type="text" value={editingQuestion.tag} onChange={e => setEditingQuestion({...editingQuestion, tag: e.target.value})} className="col-span-2 h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                  <div className="space-y-1">
+                                    <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Section</label>
+                                    <input type="number" value={editingQuestion.section} onChange={e => setEditingQuestion({...editingQuestion, section: parseInt(e.target.value)})} className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red" />
+                                  </div>
+                                  <div className="md:col-span-2 space-y-1">
+                                    <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Tag</label>
+                                    <input type="text" value={editingQuestion.tag} onChange={e => setEditingQuestion({...editingQuestion, tag: e.target.value})} className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red" />
+                                  </div>
                                 </div>
-                                <textarea value={editingQuestion.text} onChange={e => setEditingQuestion({...editingQuestion, text: e.target.value})} className="w-full bg-surface border border-border rounded-xl p-3 text-sm text-txt outline-none focus:border-tbt-red" rows={2} />
+                                <div className="space-y-1">
+                                  <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Question Text</label>
+                                  <textarea value={editingQuestion.text} onChange={e => setEditingQuestion({...editingQuestion, text: e.target.value})} className="w-full bg-surface border border-border rounded-xl p-4 text-sm text-txt outline-none focus:border-tbt-red" rows={2} />
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  {Object.entries(editingQuestion.options).map(([l, t]) => (
-                                    <div key={l} className="space-y-1">
-                                      <span className="text-[9px] font-black text-txt3 uppercase">{l} Scoring</span>
-                                      <input type="text" value={t} onChange={e => setEditingQuestion({...editingQuestion, options: {...editingQuestion.options, [l]: e.target.value}})} className="w-full h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" />
-                                    </div>
-                                  ))}
+                                  {Object.entries(editingQuestion.options).map(([l, opt]) => {
+                                    const text = typeof opt === 'string' ? opt : opt.text;
+                                    const disc = typeof opt === 'string' ? (l === 'A' ? 'D' : l === 'B' ? 'I' : l === 'C' ? 'S' : 'C') : opt.disc;
+                                    return (
+                                      <div key={l} className="space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[9px] font-black text-txt3 uppercase">{l} Scoring</span>
+                                          <select 
+                                            value={disc} 
+                                            onChange={e => setEditingQuestion({...editingQuestion, options: {...editingQuestion.options, [l]: { text, disc: e.target.value }}})} 
+                                            className="text-[8px] font-black bg-surface border border-border rounded px-1 outline-none focus:border-tbt-red"
+                                          >
+                                            <option value="D">D</option>
+                                            <option value="I">I</option>
+                                            <option value="S">S</option>
+                                            <option value="C">C</option>
+                                          </select>
+                                        </div>
+                                        <input 
+                                          type="text" 
+                                          value={text} 
+                                          onChange={e => setEditingQuestion({...editingQuestion, options: {...editingQuestion.options, [l]: { text: e.target.value, disc }}})} 
+                                          className="w-full h-10 bg-surface border border-border rounded-xl px-3 text-sm text-txt outline-none focus:border-tbt-red" 
+                                        />
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                                <div className="flex justify-end gap-3">
-                                  <button onClick={() => setEditingQuestion(null)} className="p-3 text-txt3 hover:text-txt transition-all"><X className="w-5 h-5" /></button>
-                                  <button onClick={() => handleUpdateQuestion(editingQuestion)} className="bg-tbt-red text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg shadow-tbt-red/10 transition-all">UPDATE</button>
+                                <div className="flex items-center justify-between pt-4 border-t border-border">
+                                  <div className="flex items-center gap-3">
+                                    <label className="relative inline-flex items-center cursor-pointer group/toggle">
+                                      <input type="checkbox" checked={editingQuestion.status === 'active'} onChange={e => setEditingQuestion({...editingQuestion, status: e.target.checked ? 'active' : 'inactive'})} className="sr-only peer" />
+                                      <div className="w-11 h-6 bg-border rounded-full peer peer-focus:ring-4 peer-focus:ring-tbt-red/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tbt-red transition-all"></div>
+                                    </label>
+                                    <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Question Status</span>
+                                  </div>
+                                  <div className="flex gap-3">
+                                    <button onClick={() => setEditingQuestion(null)} className="p-3 text-txt3 hover:text-txt transition-all"><X className="w-5 h-5" /></button>
+                                    <button onClick={() => handleUpdateQuestion(editingQuestion)} className="bg-tbt-red text-white px-8 py-2 rounded-xl text-xs font-black shadow-lg shadow-tbt-red/20 transition-all uppercase tracking-widest">Update Scenario</button>
+                                  </div>
                                 </div>
                               </div>
                             ) : (
@@ -987,19 +1140,31 @@ export default function AdminDashboard() {
                                   <div className="flex items-center gap-3 mb-3">
                                     <span className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-[10px] font-black text-tbt-red shadow-sm">#{idx + 1}</span>
                                     <span className="text-[10px] font-black text-txt3 uppercase tracking-[0.1em] px-2 py-1 bg-surface border border-border rounded-md">SEC {q.section} • {q.tag}</span>
+                                    <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded border", q.status === 'active' ? "bg-green-primary/5 text-green-primary border-green-primary/20" : "bg-txt3/5 text-txt3 border-border")}>{q.status}</span>
                                   </div>
                                   <h4 className="font-serif text-lg font-bold text-txt mb-4 leading-snug">{q.text}</h4>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                                    {Object.entries(q.options).map(([l, t]) => (
-                                      <div key={l} className="flex gap-2.5 text-xs">
-                                        <span className={cn("font-black shrink-0", 
-                                          l === 'A' ? 'text-tbt-red' : l === 'B' ? 'text-gold' : l === 'C' ? 'text-green-primary' : 'text-blue-primary')}>{l}:</span>
-                                        <span className="text-txt3 leading-relaxed line-clamp-1">{t}</span>
-                                      </div>
-                                    ))}
+                                    {Object.entries(q.options).map(([l, opt]) => {
+                                      const text = typeof opt === 'string' ? opt : opt.text;
+                                      const disc = typeof opt === 'string' ? '' : opt.disc;
+                                      return (
+                                        <div key={l} className="flex gap-2.5 text-xs items-center">
+                                          <span className={cn("font-black shrink-0", 
+                                            l === 'A' ? 'text-tbt-red' : l === 'B' ? 'text-gold' : l === 'C' ? 'text-green-primary' : 'text-blue-primary')}>{l}:</span>
+                                          <span className="text-txt3 leading-relaxed line-clamp-1 flex-1">{text}</span>
+                                          {disc && <span className="text-[9px] font-black bg-surface border border-border px-1 rounded opacity-60">{disc}</span>}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={async () => {
+                                    const newStatus = q.status === 'active' ? 'inactive' : 'active';
+                                    await handleUpdateQuestion({...q, status: newStatus});
+                                  }} className={cn("p-2.5 bg-surface border border-border rounded-xl transition-all", q.status === 'active' ? "text-txt3 hover:text-red-primary" : "text-txt3 hover:text-green-primary")} title={q.status === 'active' ? "Deactivate" : "Activate"}>
+                                    <Layers className="w-4 h-4" />
+                                  </button>
                                   <button onClick={() => setEditingQuestion(q)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-tbt-red hover:border-tbt-red transition-all"><Edit2 className="w-4 h-4" /></button>
                                   <button onClick={() => handleDeleteQuestion(q.id)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-red-primary hover:border-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
                                 </div>
@@ -1007,6 +1172,13 @@ export default function AdminDashboard() {
                             )}
                           </div>
                         ))}
+                        {questions.filter(q => registryPoolQuestionIds.includes(q.id) && (q.status || 'active') === questionStatusFilter).length === 0 && (
+                          <div className="p-20 text-center bg-card border border-dashed border-border rounded-[2rem]">
+                            <FileText className="w-12 h-12 text-txt3/20 mx-auto mb-4" />
+                            <h3 className="font-serif text-xl font-black text-txt3 uppercase tracking-widest">No {questionStatusFilter} Scenarios</h3>
+                            <p className="text-xs text-txt3 mt-2">Switch filters or add a new scenario to this pool.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </>
@@ -1022,9 +1194,17 @@ export default function AdminDashboard() {
                     <h1 className="font-serif text-3xl font-black text-txt">Multi-Audience Engine</h1>
                     <p className="text-sm text-txt3 mt-1 uppercase tracking-widest font-bold">Manage categories and specialized question sets</p>
                   </div>
-                  <button onClick={handleSeedEntrepreneur} disabled={loading} className="px-5 py-2.5 bg-surface border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-txt2 hover:text-tbt-red hover:border-tbt-red transition-all flex items-center gap-2">
-                    <RefreshCcw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Sync Entrepreneur Set
-                  </button>
+                  <div className="flex gap-3">
+                    <button onClick={() => handleSeed(true)} disabled={loading} className="px-5 py-2.5 bg-tbt-red-dim border border-tbt-red/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-tbt-red hover:bg-tbt-red/10 transition-all flex items-center gap-2">
+                      <RefreshCcw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Reshuffle & Sync Master Pool
+                    </button>
+                    <button onClick={handleSeedEntrepreneur} disabled={loading} className="px-5 py-2.5 bg-surface border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-txt2 hover:text-tbt-red hover:border-tbt-red transition-all flex items-center gap-2">
+                      <RefreshCcw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Sync Entrepreneur Set
+                    </button>
+                    <button onClick={handleSeedEmployee} disabled={loading} className="px-5 py-2.5 bg-surface border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-txt2 hover:text-tbt-red hover:border-tbt-red transition-all flex items-center gap-2">
+                      <RefreshCcw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Sync Employee Set
+                    </button>
+                  </div>
                 </div>
 
                 {/* Sub-Navigation */}
@@ -1094,10 +1274,19 @@ export default function AdminDashboard() {
                               <>
                                 <div className="flex justify-between items-start mb-4">
                                   <div>
-                                    <h4 className="font-serif text-xl font-black text-txt">{c.name}</h4>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-serif text-xl font-black text-txt">{c.name}</h4>
+                                      <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded border", c.status === 'active' ? "bg-green-primary/5 text-green-primary border-green-primary/20" : "bg-txt3/5 text-txt3 border-border")}>{c.status || 'active'}</span>
+                                    </div>
                                     <code className="text-[10px] bg-surface px-2 py-0.5 rounded text-tbt-red font-bold uppercase tracking-widest">/{c.slug}</code>
                                   </div>
                                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={async () => {
+                                      const newStatus = (c.status || 'active') === 'active' ? 'inactive' : 'active';
+                                      await handleUpdateCategory({...c, status: newStatus});
+                                    }} className={cn("p-2 rounded-lg bg-surface border border-border transition-all", (c.status || 'active') === 'active' ? "text-txt3 hover:text-red-primary" : "text-txt3 hover:text-green-primary")} title={(c.status || 'active') === 'active' ? "Deactivate" : "Activate"}>
+                                      <Layers className="w-4 h-4" />
+                                    </button>
                                     <button onClick={() => setEditingCategory(c)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all"><Edit2 className="w-4 h-4" /></button>
                                     <button onClick={async () => { if(confirm("Delete Category?")){ await supabase.from('assessment_categories').delete().eq('id', c.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all"><Trash2 className="w-4 h-4" /></button>
                                   </div>
@@ -1127,10 +1316,32 @@ export default function AdminDashboard() {
                             </select>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Target Audience (Short)</label>
                             <input id="set-target" type="text" placeholder="e.g. Existing Business Owners" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                          </div>
+                          <div className="flex gap-8">
+                            <div className="flex items-center gap-3 pt-2">
+                              <label className="relative inline-flex items-center cursor-pointer group/toggle">
+                                <input type="checkbox" id="set-show-tags" className="sr-only peer" defaultChecked />
+                                <div className="w-11 h-6 bg-border rounded-full peer peer-focus:ring-4 peer-focus:ring-tbt-red/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tbt-red transition-all"></div>
+                              </label>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Question Tags</span>
+                                <span className="text-[9px] text-txt3 opacity-60 uppercase font-bold">Visible in Frontend</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 pt-2">
+                              <label className="relative inline-flex items-center cursor-pointer group/toggle">
+                                <input type="checkbox" id="set-status" className="sr-only peer" defaultChecked />
+                                <div className="w-11 h-6 bg-border rounded-full peer peer-focus:ring-4 peer-focus:ring-tbt-red/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tbt-red transition-all"></div>
+                              </label>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Set Status</span>
+                                <span className="text-[9px] text-txt3 opacity-60 uppercase font-bold">Active in Frontend</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -1148,24 +1359,83 @@ export default function AdminDashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {sets.map(s => (
                           <div key={s.id} className={cn("bg-card border rounded-2xl p-6 transition-all group relative", selectedSet?.id === s.id ? "border-tbt-red shadow-lg shadow-tbt-red/5" : "border-border hover:border-border2")}>
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-serif text-xl font-black text-txt">{s.title}</h4>
-                                <span className="text-[9px] bg-tbt-red-dim text-tbt-red px-1.5 py-0.5 rounded font-black">v{s.version}</span>
+                            {editingSet?.id === s.id ? (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                    <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Title</label>
+                                    <input type="text" value={editingSet.title} onChange={e => setEditingSet({...editingSet, title: e.target.value})} className="w-full h-10 bg-surface border border-border rounded-lg px-3 text-sm text-txt outline-none focus:border-tbt-red" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Category</label>
+                                    <select value={editingSet.category_id} onChange={e => setEditingSet({...editingSet, category_id: e.target.value})} className="w-full h-10 bg-surface border border-border rounded-lg px-3 text-sm text-txt outline-none focus:border-tbt-red">
+                                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                    <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Target Audience</label>
+                                    <input type="text" value={editingSet.target_audience} onChange={e => setEditingSet({...editingSet, target_audience: e.target.value})} className="w-full h-10 bg-surface border border-border rounded-lg px-3 text-sm text-txt outline-none focus:border-tbt-red" />
+                                  </div>
+                                  <div className="flex flex-col gap-4 pt-4">
+                                    <div className="flex items-center gap-3">
+                                      <label className="relative inline-flex items-center cursor-pointer group/toggle">
+                                        <input type="checkbox" checked={editingSet.show_tags} onChange={e => setEditingSet({...editingSet, show_tags: e.target.checked})} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-border rounded-full peer peer-focus:ring-4 peer-focus:ring-tbt-red/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tbt-red transition-all"></div>
+                                      </label>
+                                      <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Show Tags</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <label className="relative inline-flex items-center cursor-pointer group/toggle">
+                                        <input type="checkbox" checked={editingSet.status === 'active'} onChange={e => setEditingSet({...editingSet, status: e.target.checked ? 'active' : 'inactive'})} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-border rounded-full peer peer-focus:ring-4 peer-focus:ring-tbt-red/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tbt-red transition-all"></div>
+                                      </label>
+                                      <span className="text-[10px] font-black text-txt3 uppercase tracking-widest">Active Set</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[9px] text-txt3 uppercase font-black tracking-widest px-1">Description</label>
+                                  <textarea value={editingSet.description} onChange={e => setEditingSet({...editingSet, description: e.target.value})} className="w-full bg-surface border border-border rounded-lg p-3 text-sm text-txt outline-none focus:border-tbt-red resize-none" rows={2} />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => setEditingSet(null)} className="p-2 text-txt3 hover:text-txt"><X className="w-5 h-5" /></button>
+                                  <button onClick={() => handleUpdateSet(editingSet)} className="bg-tbt-red text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-tbt-red/20">Update</button>
+                                </div>
                               </div>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => handleDuplicateSet(s)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red hover:bg-tbt-red-dim transition-all" title="Duplicate Set"><Copy className="w-4 h-4" /></button>
-                                <button onClick={() => fetchMappings(s.id)} className="p-2 rounded-lg bg-surface border border-border text-tbt-red hover:bg-tbt-red-dim transition-all" title="Manage Mappings"><RefreshCcw className="w-4 h-4" /></button>
-                                <button onClick={async () => { if(confirm("Delete Set?")){ await supabase.from('question_sets').delete().eq('id', s.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all" title="Delete Set"><Trash2 className="w-4 h-4" /></button>
-                              </div>                            </div>
-                            <div className="text-[10px] font-black text-txt3 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <ListTree className="w-3 h-3" /> {categories.find(c => c.id === s.category_id)?.name || "Uncategorized"}
-                            </div>
-                            <p className="text-xs text-txt3 mb-6 line-clamp-2">{s.description || "No description provided."}</p>
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                              <div className="text-[10px] font-bold text-txt3 uppercase tracking-widest">Target: <span className="text-txt2">{s.target_audience || "Universal"}</span></div>
-                              <button onClick={() => fetchMappings(s.id)} className="text-[10px] font-black text-tbt-red uppercase tracking-widest hover:underline">Manage Mapping →</button>
-                            </div>
+                            ) : (
+                              <>
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-serif text-xl font-black text-txt">{s.title}</h4>
+                                    <span className="text-[9px] bg-tbt-red-dim text-tbt-red px-1.5 py-0.5 rounded font-black">v{s.version}</span>
+                                  </div>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => setEditingSet({...s, show_tags: s.show_tags !== false})} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red transition-all" title="Edit Set"><Edit2 className="w-4 h-4" /></button>
+                                    <button onClick={() => handleDuplicateSet(s)} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-tbt-red hover:bg-tbt-red-dim transition-all" title="Duplicate Set"><Copy className="w-4 h-4" /></button>
+                                    <button onClick={() => fetchMappings(s.id)} className="p-2 rounded-lg bg-surface border border-border text-tbt-red hover:bg-tbt-red-dim transition-all" title="Manage Mappings"><RefreshCcw className="w-4 h-4" /></button>
+                                    <button onClick={async () => { if(confirm("Delete Set?")){ await supabase.from('question_sets').delete().eq('id', s.id); fetchData(); } }} className="p-2 rounded-lg bg-surface border border-border text-txt3 hover:text-red-primary transition-all" title="Delete Set"><Trash2 className="w-4 h-4" /></button>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                                  <div className="text-[10px] font-black text-txt3 uppercase tracking-widest flex items-center gap-2">
+                                    <ListTree className="w-3 h-3" /> {categories.find(c => c.id === s.category_id)?.name || "Uncategorized"}
+                                  </div>
+                                  <div className={cn("text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded border", s.show_tags ? "bg-tbt-red/5 text-tbt-red border-tbt-red/20" : "bg-txt3/5 text-txt3 border-border")}>
+                                    Tags: {s.show_tags ? "Visible" : "Hidden"}
+                                  </div>
+                                  <div className={cn("text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded border", s.status === 'active' ? "bg-green-primary/5 text-green-primary border-green-primary/20" : "bg-txt3/5 text-txt3 border-border")}>
+                                    Status: {s.status === 'active' ? "Active" : "Inactive"}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-txt3 mb-6 line-clamp-2">{s.description || "No description provided."}</p>
+                                <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+                                  <div className="text-[10px] font-bold text-txt3 uppercase tracking-widest">Target: <span className="text-txt2">{s.target_audience || "Universal"}</span></div>
+                                  <button onClick={() => fetchMappings(s.id)} className="text-[10px] font-black text-tbt-red uppercase tracking-widest hover:underline">Manage Mapping →</button>
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1311,8 +1581,8 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Communication</label>
                               <textarea 
-                                value={p.traits.communication} 
-                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, communication: e.target.value}} : item))} 
+                                value={p.traits?.communication || ""} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...(item.traits || {}), communication: e.target.value}} : item))} 
                                 className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
                                 rows={2} 
                               />
@@ -1320,8 +1590,8 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Decision Making</label>
                               <textarea 
-                                value={p.traits.decisionMaking} 
-                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, decisionMaking: e.target.value}} : item))} 
+                                value={p.traits?.decisionMaking || ""} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...(item.traits || {}), decisionMaking: e.target.value}} : item))} 
                                 className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
                                 rows={2} 
                               />
@@ -1329,8 +1599,8 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Stress Response</label>
                               <textarea 
-                                value={p.traits.stressResponse} 
-                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, stressResponse: e.target.value}} : item))} 
+                                value={p.traits?.stressResponse || ""} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...(item.traits || {}), stressResponse: e.target.value}} : item))} 
                                 className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
                                 rows={2} 
                               />
@@ -1338,8 +1608,8 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Leadership</label>
                               <textarea 
-                                value={p.traits.leadership} 
-                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, leadership: e.target.value}} : item))} 
+                                value={p.traits?.leadership || ""} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...(item.traits || {}), leadership: e.target.value}} : item))} 
                                 className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
                                 rows={2} 
                               />
@@ -1347,8 +1617,8 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Growth Area</label>
                               <textarea 
-                                value={p.traits.growth} 
-                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, growth: e.target.value}} : item))} 
+                                value={p.traits?.growth || ""} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...(item.traits || {}), growth: e.target.value}} : item))} 
                                 className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
                                 rows={2} 
                               />
@@ -1356,8 +1626,8 @@ export default function AdminDashboard() {
                             <div className="space-y-2">
                               <label className="text-[9px] text-txt3 uppercase font-black tracking-widest block">Executive Summary</label>
                               <textarea 
-                                value={p.traits.summary} 
-                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...item.traits, summary: e.target.value}} : item))} 
+                                value={p.traits?.summary || ""} 
+                                onChange={e => setProfiles(profiles.map(item => item.letter === p.letter ? {...item, traits: {...(item.traits || {}), summary: e.target.value}} : item))} 
                                 className="w-full bg-surface border border-border rounded-xl p-3 text-xs text-txt2 outline-none focus:border-tbt-red transition-all" 
                                 rows={2} 
                               />
@@ -1476,25 +1746,123 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                   <h4 className="text-[10px] font-black text-txt3 uppercase tracking-[0.2em] border-b border-border pb-3">Response Log</h4>
                   <div className="space-y-6">
-                    {resultAnswers.map((ans, idx) => (
-                      <div key={idx} className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-tbt-red border border-tbt-red/30 px-1.5 py-0.5 rounded">Q{ans.question_id}</span>
-                          <span className={cn("text-[10px] font-black uppercase", 
-                            ans.answer_letter === 'A' ? 'text-tbt-red' : 
-                            ans.answer_letter === 'B' ? 'text-gold' : 
-                            ans.answer_letter === 'C' ? 'text-green-primary' : 'text-blue-primary')}>
-                            Response: Option {ans.answer_letter}
-                          </span>
-                        </div>
-                        {ans.reflection && (
-                          <div className="bg-card p-4 rounded-xl border border-border italic text-xs text-txt2 leading-relaxed">
-                            "{ans.reflection}"
+                    {resultAnswers.map((ans, idx) => {
+                      const qData = ans.questions;
+                      const question = (Array.isArray(qData) ? qData[0] : qData) || questions.find(q => q.id === ans.question_id);
+                      const selectedLetter = ans.answer_letter;
+                      
+                      // Resolve actual DISC type from stored mapping
+                      let discType = "";
+                      if (question && question.options && question.options[selectedLetter]) {
+                        const opt = question.options[selectedLetter];
+                        discType = typeof opt === 'object' ? opt.disc : (selectedLetter === 'A' ? 'D' : selectedLetter === 'B' ? 'I' : selectedLetter === 'C' ? 'S' : 'C');
+                      } else {
+                        // Fallback to legacy
+                        discType = selectedLetter === 'A' ? 'D' : selectedLetter === 'B' ? 'I' : selectedLetter === 'C' ? 'S' : 'C';
+                      }
+
+                      return (
+                        <div key={idx} className="space-y-4 bg-surface border border-border/50 rounded-2xl p-6 hover:border-tbt-red/20 transition-all">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <span className="text-[10px] font-black text-white bg-tbt-red px-2 py-0.5 rounded shadow-sm">Q{idx + 1}</span>
+                                <span className="text-[10px] font-black text-txt3 uppercase tracking-widest bg-surface border border-border px-2 py-0.5 rounded">
+                                  {question?.tag || "Assessment"}
+                                </span>
+                                <div className="ml-auto flex items-center gap-2">
+                                  <span className="text-[9px] font-black text-txt3 uppercase tracking-widest opacity-60">Selected:</span>
+                                  <span className="text-[10px] font-black text-white bg-tbt-red w-6 h-6 rounded-lg flex items-center justify-center shadow-lg shadow-tbt-red/20">
+                                    {selectedLetter}
+                                  </span>
+                                </div>
+                              </div>
+                              <h5 className="text-sm font-bold text-txt mb-5 leading-relaxed">{question?.text || `Scenario #${ans.question_id}`}</h5>
+                              
+                              <div className="grid gap-2">
+                                {['A', 'B', 'C', 'D'].map((letter) => {
+                                  const isSelected = letter === selectedLetter;
+                                  const opt = question?.options?.[letter];
+                                  const text = typeof opt === 'object' ? opt?.text : opt;
+                                  
+                                  return (
+                                    <div key={letter} className={cn(
+                                      "flex items-center gap-3 p-3 rounded-xl border transition-all text-xs",
+                                      isSelected 
+                                        ? "bg-tbt-red/5 border-tbt-red/30 text-txt font-bold shadow-sm" 
+                                        : "bg-card/50 border-border/50 text-txt3 opacity-60"
+                                    )}>
+                                      <div className={cn(
+                                        "w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0",
+                                        isSelected ? "bg-tbt-red text-white" : "bg-surface border border-border text-txt3"
+                                      )}>
+                                        {letter}
+                                      </div>
+                                      <span className="flex-1">{text || "Option text unavailable"}</span>
+                                      {isSelected && (
+                                        <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded", 
+                                          discType === 'D' ? 'bg-tbt-red text-white' : 
+                                          discType === 'I' ? 'bg-gold text-white' : 
+                                          discType === 'S' ? 'bg-green-primary text-white' : 
+                                          'bg-blue-primary text-white')}>
+                                          {discType}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
-                        )}
+                          {ans.reflection && (
+                            <div className="mt-2 bg-card p-4 rounded-xl border border-border/50 italic text-[11px] text-txt3 leading-relaxed relative overflow-hidden group">
+                              <div className="absolute top-0 left-0 w-1 h-full bg-tbt-red/10" />
+                              <span className="text-[9px] font-black text-tbt-red uppercase tracking-widest block mb-1 opacity-50">Reflection</span>
+                              "{ans.reflection}"
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {fetchingDetail && (
+                      <div className="text-center py-12 bg-surface rounded-2xl border border-dashed border-border">
+                        <Loader2 className="w-8 h-8 text-tbt-red/20 animate-spin mx-auto mb-4" />
+                        <p className="text-xs text-txt3 font-bold uppercase tracking-widest">Loading response data...</p>
                       </div>
-                    ))}
+                    )}
+                    {!fetchingDetail && resultAnswers.length === 0 && (
+                      <div className="text-center py-12 bg-surface rounded-2xl border border-dashed border-border">
+                        <FileText className="w-8 h-8 text-txt3/20 mx-auto mb-4" />
+                        <p className="text-xs text-txt3 font-bold uppercase tracking-widest">No responses recorded for this assessment.</p>
+                      </div>
+                    )}
                   </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {resultToDelete && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setResultToDelete(null)} className="fixed inset-0 bg-bg/80 backdrop-blur-md z-[200]" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-surface border border-border z-[201] rounded-3xl p-8 shadow-2xl">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-tbt-red-dim flex items-center justify-center text-tbt-red mb-6">
+                  <Trash2 className="w-8 h-8" />
+                </div>
+                <h3 className="font-serif text-2xl font-black text-txt mb-2">Delete Response?</h3>
+                <p className="text-sm text-txt3 leading-relaxed mb-8">
+                  Are you sure you want to delete the assessment for <span className="text-txt font-bold">"{resultToDelete.full_name}"</span>? This action cannot be undone.
+                </p>
+                <div className="grid grid-cols-2 gap-4 w-full">
+                  <button onClick={() => setResultToDelete(null)} className="h-12 rounded-xl border border-border text-xs font-black uppercase tracking-widest text-txt3 hover:bg-card hover:text-txt transition-all">No, Cancel</button>
+                  <button onClick={handleDeleteResult} disabled={saving} className="h-12 rounded-xl bg-tbt-red text-white text-xs font-black uppercase tracking-widest hover:bg-tbt-red-hover shadow-lg shadow-tbt-red/20 transition-all flex items-center justify-center gap-2">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Yes, Delete
+                  </button>
                 </div>
               </div>
             </motion.div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { UserData, Question, Answer } from "@/types";
+import { useState, useEffect, useMemo } from "react";
+import { UserData, Question, Answer, QuestionOption } from "@/types";
 import { SECTIONS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, shuffleArray } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
@@ -15,7 +15,7 @@ interface QuestionnaireProps {
   setCurrentIdx: React.Dispatch<React.SetStateAction<number>>;
   answers: Record<number, Answer>;
   setAnswers: React.Dispatch<React.SetStateAction<Record<number, Answer>>>;
-  onComplete: (answers: Record<number, Answer>) => void;
+  onComplete: (answers: Record<number, Answer>, questions: Question[]) => void;
 }
 
 export default function Questionnaire({ 
@@ -29,6 +29,7 @@ export default function Questionnaire({
   const [reflection, setReflection] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTags, setShowTags] = useState(true);
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -44,12 +45,24 @@ export default function Questionnaire({
           .eq('question_set_id', userData.questionSetId)
           .order('display_order', { ascending: true });
         
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           const mappedQuestions = data.map((item: any) => item.questions).filter(Boolean);
           setQuestions(mappedQuestions);
+        } else {
+          setQuestions([]);
         }
-      } else {
-        // Fallback to Master List (Backward Compatibility)
+
+        // Fetch set configuration (show_tags)
+        const { data: setConfig } = await supabase
+          .from("question_sets")
+          .select("show_tags")
+          .eq("id", userData.questionSetId)
+          .single();
+        
+        if (setConfig) {
+          setShowTags(setConfig.show_tags !== false); // Default to true if null
+        }
+      } else if (!userData.categoryId) {
         const { data, error } = await supabase
           .from('questions')
           .select('*')
@@ -58,17 +71,28 @@ export default function Questionnaire({
         if (!error && data) {
           setQuestions(data);
         }
+      } else {
+        setQuestions([]);
       }
       setLoading(false);
     }
     fetchQuestions();
-  }, [userData.questionSetId]);
+  }, [userData.questionSetId, userData.categoryId]);
 
   useEffect(() => {
     if (questions[currentIdx]) {
       setReflection(answers[questions[currentIdx].id]?.reflection || "");
     }
   }, [currentIdx, answers, questions]);
+
+  const question = questions[currentIdx];
+
+  // Dynamic Shuffling: Shuffles options locally for this session
+  const shuffledOptions = useMemo(() => {
+    if (!question) return [];
+    const entries = Object.entries(question.options) as [("A" | "B" | "C" | "D"), string | QuestionOption][];
+    return shuffleArray(entries);
+  }, [question]);
 
   if (loading) {
     return (
@@ -90,17 +114,20 @@ export default function Questionnaire({
     );
   }
 
-  const question = questions[currentIdx];
-  
-  // Dynamic section detection based on question ID
   const section = SECTIONS.find(
     (s) => question.id >= s.range[0] && question.id <= s.range[1]
   ) || { label: "General Sequence" };
 
-  const handleSelect = (letter: "A" | "B" | "C" | "D") => {
+  const handleSelect = (letter: "A" | "B" | "C" | "D", disc?: "D" | "I" | "S" | "C") => {
+    console.log(`[DNA SEQUENCE] Q${question.id} Selection: Option ${letter} -> Mapped to ${disc || 'UNKNOWN'}`);
+    
     setAnswers((prev) => ({
       ...prev,
-      [question.id]: { answer: letter, reflection },
+      [question.id]: { 
+        answer: letter, 
+        discType: disc, 
+        reflection 
+      },
     }));
   };
 
@@ -114,7 +141,7 @@ export default function Questionnaire({
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(currentIdx + 1);
     } else {
-      onComplete(updatedAnswers);
+      onComplete(updatedAnswers, questions);
     }
   };
 
@@ -187,11 +214,15 @@ export default function Questionnaire({
               <div className="flex flex-col min-h-0">
                 {/* Question Meta */}
                 <div className="flex items-center gap-3 mb-[1vh] md:mb-[2vh] opacity-50 shrink-0">
-                  <div className="flex items-center gap-2 text-[7px] md:text-[8px] text-tbt-red font-black uppercase tracking-[0.2em]">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    {question.tag}
-                  </div>
-                  <div className="w-1 h-1 rounded-full bg-white/20" />
+                  {showTags && (
+                    <>
+                      <div className="flex items-center gap-2 text-[7px] md:text-[8px] text-tbt-red font-black uppercase tracking-[0.2em]">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        {question.tag}
+                      </div>
+                      <div className="w-1 h-1 rounded-full bg-white/20" />
+                    </>
+                  )}
                   <div className="font-serif text-[7px] md:text-[9px] text-txt3 font-bold uppercase tracking-widest">
                     Inquiry {currentIdx + 1} of {questions.length}
                   </div>
@@ -215,40 +246,48 @@ export default function Questionnaire({
 
                 {/* Premium Option Grid - Proportional Sizing */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-[1vh] md:gap-4 lg:gap-5 mb-[1vh] md:mb-[2vh] overflow-y-auto md:overflow-hidden min-h-0 pr-1 custom-scrollbar">
-                  {(Object.entries(question.options) as [("A" | "B" | "C" | "D"), string][]).map(
-                    ([letter, text]) => (
-                      <motion.button
-                        key={letter}
-                        whileHover={{ scale: 1.01, x: 2 }}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => handleSelect(letter)}
-                        className={cn(
-                          "flex items-center gap-3 md:gap-4 bg-white/[0.012] border border-white/[0.06] rounded-xl md:rounded-2xl p-[1.5vh] md:p-5 text-left w-full transition-all duration-300 group relative overflow-hidden shrink-0",
-                          answers[question.id]?.answer === letter &&
-                            "bg-tbt-red/[0.07] border-tbt-red/30 shadow-[0_15px_40px_rgba(204,0,0,0.08)] ring-1 ring-tbt-red/10"
-                        )}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-tbt-red/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div
+                  {shuffledOptions.map(
+                    ([originalLetter, opt], index) => {
+                      const displayLetter = (["A", "B", "C", "D"] as const)[index];
+                      const text = typeof opt === 'string' ? opt : opt.text;
+                      const disc = typeof opt === 'string' ? undefined : opt.disc;
+                      return (
+                        <motion.button
+                          key={originalLetter}
+                          whileHover={{ scale: 1.01, x: 2 }}
+                          whileTap={{ scale: 0.99 }}
+                          onClick={() => {
+                            console.log(`UI Select: Q${question.id} Position ${displayLetter} (Original: ${originalLetter}, Mapped to: ${disc || 'LEGACY'})`);
+                            handleSelect(originalLetter, disc);
+                          }}
                           className={cn(
-                            "w-6 h-6 md:w-9 md:h-9 rounded-lg md:rounded-xl border border-white/10 flex items-center justify-center text-[9px] md:text-sm font-black text-txt3 shrink-0 transition-all font-serif group-hover:border-tbt-red/30 relative z-10",
-                            answers[question.id]?.answer === letter &&
-                              "bg-tbt-red border-tbt-red text-white shadow-md scale-105"
+                            "flex items-center gap-3 md:gap-4 bg-white/[0.012] border border-white/[0.06] rounded-xl md:rounded-2xl p-[1.5vh] md:p-5 text-left w-full transition-all duration-300 group relative overflow-hidden shrink-0",
+                            answers[question.id]?.answer === originalLetter &&
+                              "bg-tbt-red/[0.07] border-tbt-red/30 shadow-[0_15px_40px_rgba(204,0,0,0.08)] ring-1 ring-tbt-red/10"
                           )}
                         >
-                          {letter}
-                        </div>
-                        <div
-                          className={cn(
-                            "text-txt2 font-medium leading-tight md:leading-snug transition-colors duration-300 group-hover:text-txt relative z-10",
-                            answers[question.id]?.answer === letter && "text-txt font-semibold"
-                          )}
-                          style={{ fontSize: "clamp(0.8rem, 0.8vh + 0.4rem, 1rem)" }}
-                        >
-                          {text}
-                        </div>
-                      </motion.button>
-                    )
+                          <div className="absolute inset-0 bg-gradient-to-br from-tbt-red/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div
+                            className={cn(
+                              "w-6 h-6 md:w-9 md:h-9 rounded-lg md:rounded-xl border border-white/10 flex items-center justify-center text-[9px] md:text-sm font-black text-txt3 shrink-0 transition-all font-serif group-hover:border-tbt-red/30 relative z-10",
+                              answers[question.id]?.answer === originalLetter &&
+                                "bg-tbt-red border-tbt-red text-white shadow-md scale-105"
+                            )}
+                          >
+                            {displayLetter}
+                          </div>
+                          <div
+                            className={cn(
+                              "text-txt2 font-medium leading-tight md:leading-snug transition-colors duration-300 group-hover:text-txt relative z-10",
+                              answers[question.id]?.answer === originalLetter && "text-txt font-semibold"
+                            )}
+                            style={{ fontSize: "clamp(0.8rem, 0.8vh + 0.4rem, 1rem)" }}
+                          >
+                            {text}
+                          </div>
+                        </motion.button>
+                      );
+                    }
                   )}
                 </div>
               </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
-import { Answer, UserData } from "@/types";
+import { Answer, UserData, Question } from "@/types";
 import { computeScores, analyzeDiscProfile } from "@/lib/utils";
 import { DISC_PROFILES } from "@/lib/constants";
 
@@ -9,8 +9,21 @@ import { sendZacxTemplateMessage } from "@/lib/zacx";
 
 export async function saveAssessmentResult(userData: UserData, answers: Record<number, Answer>) {
   try {
-    const scores = computeScores(answers);
+    console.log("Processing assessment for:", userData.name, "with", Object.keys(answers).length, "answers");
     
+    // Fetch the questions to compute scores dynamically based on the mapping
+    const qIds = Object.keys(answers).map(id => parseInt(id));
+    const { data: questionsRes, error: qFetchError } = await supabase.from('questions').select('*').in('id', qIds);
+    
+    if (qFetchError) {
+      console.error("Error fetching questions for scoring:", qFetchError);
+    }
+
+    const fetchedQuestions = (questionsRes || []) as Question[];
+    const scores = computeScores(answers, fetchedQuestions);
+    
+    console.log("Calculated Dynamic Scores:", scores);
+
     // 1. Fetch Profile Configs for Analysis
     const { data: profileRes } = await supabase.from('disc_profiles').select('*');
     const profiles: Record<string, any> = {};

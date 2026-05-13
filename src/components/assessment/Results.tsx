@@ -340,7 +340,7 @@ export default function Results({ userData, scores, onRestart }: ResultsProps) {
           </div>
           
           <h2 className="font-serif text-2xl md:text-6xl font-black text-white mb-8 md:mb-10 leading-[1.1]">
-            Your <span className="opacity-60 italic">Zero-Rupee</span> Marketing Angle
+            Tamil Business Tribe Angle
           </h2>
           
           <div className="max-w-[750px]">

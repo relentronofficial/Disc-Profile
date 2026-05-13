@@ -1,25 +1,49 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
-import { QUESTIONS, DISC_PROFILES } from "@/lib/constants";
+import { QUESTIONS, EMPLOYEE_QUESTIONS, DISC_PROFILES } from "@/lib/constants";
+import { shuffleArray } from "@/lib/utils";
 
-export async function seedDatabase() {
+/**
+ * Helper to shuffle DISC options for a question
+ */
+function shuffleQuestionOptions(q: any) {
+  const discLetters: ("D" | "I" | "S" | "C")[] = ["D", "I", "S", "C"];
+  const shuffledDisc = shuffleArray(discLetters);
+  
+  const newOptions: any = {};
+  ["A", "B", "C", "D"].forEach((letter, index) => {
+    const disc = shuffledDisc[index];
+    // Find original option that had this disc
+    const originalOption = Object.values(q.options).find(opt => 
+      (typeof opt === 'string' ? false : opt.disc === disc)
+    ) as any;
+    
+    newOptions[letter] = {
+      text: originalOption?.text || "",
+      disc: disc
+    };
+  });
+
+  return {
+    ...q,
+    options: newOptions
+  };
+}
+
+export async function seedDatabase(forceUpdate = false) {
   try {
-    // 1. Seed Questions
+    // 1. Seed All Questions (Entrepreneur + Employee)
     const { count: qCount } = await supabase.from('questions').select('*', { count: 'exact', head: true });
     
-    if (qCount === 0) {
-      console.log("Seeding questions...");
-      const formattedQuestions = QUESTIONS.map(q => ({
-        id: q.id,
-        section: q.section,
-        tag: q.tag,
-        text: q.text,
-        instruction: q.instruction,
-        options: q.options
-      }));
+    if (qCount === 0 || forceUpdate) {
+      console.log("Seeding all questions (forceUpdate:", forceUpdate, ")...");
+      const allQs = [...QUESTIONS, ...EMPLOYEE_QUESTIONS];
+      // Note: Questions are already pre-shuffled in constants.ts
+      // We still apply shuffleQuestionOptions to ensure randomness if seeded multiple times
+      const formattedQuestions = allQs.map(q => shuffleQuestionOptions(q));
       
-      const { error: qError } = await supabase.from('questions').insert(formattedQuestions);
+      const { error: qError } = await supabase.from('questions').upsert(formattedQuestions, { onConflict: 'id' });
       if (qError) throw qError;
     }
 
@@ -53,69 +77,102 @@ export async function seedDatabase() {
 
 export async function seedEntrepreneurSet() {
   try {
-    // 1. Ensure Category exists
-    let { data: cat, error: catError } = await supabase
-      .from('assessment_categories')
-      .select('id')
-      .eq('slug', 'entrepreneurs')
-      .single();
+    console.log("Syncing & Shuffling Entrepreneur Set...");
     
+    // 1. Ensure Category exists
+    let { data: cat } = await supabase.from('assessment_categories').select('id').eq('slug', 'entrepreneurs').single();
     if (!cat) {
-      const { data: newCat, error: insError } = await supabase
-        .from('assessment_categories')
-        .insert([{ name: 'Entrepreneurs', slug: 'entrepreneurs', description: 'Specialized DISC for business builders', status: 'active' }])
-        .select()
-        .single();
-      if (insError) throw insError;
+      const { data: newCat, error } = await supabase.from('assessment_categories').insert([{ name: 'Entrepreneurs', slug: 'entrepreneurs', description: 'Specialized DISC for business builders', status: 'active' }]).select().single();
+      if (error) throw error;
       cat = newCat;
     }
 
-    // 2. Ensure Set exists
-    let { data: set, error: setError } = await supabase
-      .from('question_sets')
-      .select('id')
-      .eq('category_id', cat!.id)
-      .eq('title', 'Entrepreneur Master Set')
-      .single();
-    
+    // 2. Shuffle and Upsert Questions 1-20
+    const questionsToShuffle = QUESTIONS.slice(0, 20).map(q => shuffleQuestionOptions(q));
+    const { error: upsertError } = await supabase.from('questions').upsert(questionsToShuffle, { onConflict: 'id' });
+    if (upsertError) throw upsertError;
+
+    // 3. Ensure Set exists
+    let { data: set } = await supabase.from('question_sets').select('id').eq('category_id', cat!.id).eq('title', 'Entrepreneur Master Set').single();
     if (!set) {
-      const { data: newSet, error: insSetError } = await supabase
-        .from('question_sets')
-        .insert([{ 
-          category_id: cat!.id, 
-          title: 'Entrepreneur Master Set', 
-          target_audience: 'Existing & Aspiring Entrepreneurs',
-          description: 'Comprehensive 20-scenario assessment',
-          status: 'active',
-          version: '1.0'
-        }])
-        .select()
-        .single();
-      if (insSetError) throw insSetError;
+      const { data: newSet, error } = await supabase.from('question_sets').insert([{ 
+        category_id: cat!.id, 
+        title: 'Entrepreneur Master Set', 
+        target_audience: 'Existing & Aspiring Entrepreneurs',
+        description: 'Comprehensive 20-scenario assessment',
+        status: 'active',
+        version: '1.0',
+        show_tags: true
+      }]).select().single();
+      if (error) throw error;
       set = newSet;
     }
 
-    // 3. Map all 20 questions
-    const { data: qs, error: qsError } = await supabase.from('questions').select('id').order('id', { ascending: true });
-    if (qsError) throw qsError;
+    // 4. Map questions
+    const mappings = questionsToShuffle.map((q, i) => ({
+      question_set_id: set!.id,
+      question_id: q.id,
+      display_order: i + 1
+    }));
 
-    if (qs && qs.length > 0) {
-      const mappings = qs.map((q, i) => ({
-        question_set_id: set!.id,
-        question_id: q.id,
-        display_order: i + 1
-      }));
-
-      // Clear existing mappings for this set to avoid duplicates if re-run
-      await supabase.from('question_set_questions').delete().eq('question_set_id', set!.id);
-      
-      const { error: mapError } = await supabase.from('question_set_questions').insert(mappings);
-      if (mapError) throw mapError;
-    }
+    await supabase.from('question_set_questions').delete().eq('question_set_id', set!.id);
+    const { error: mapError } = await supabase.from('question_set_questions').insert(mappings);
+    if (mapError) throw mapError;
 
     return { success: true };
   } catch (err: any) {
-    console.error("Entrepreneur seeding error:", err);
+    console.error("Entrepreneur sync error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function seedEmployeeSet() {
+  try {
+    console.log("Syncing & Shuffling Employee Set...");
+    
+    // 1. Ensure Category exists
+    let { data: cat } = await supabase.from('assessment_categories').select('id').eq('slug', 'employees').single();
+    if (!cat) {
+      const { data: newCat, error } = await supabase.from('assessment_categories').insert([{ name: 'Employees', slug: 'employees', description: 'Specialized DISC for corporate professionals', status: 'active' }]).select().single();
+      if (error) throw error;
+      cat = newCat;
+    }
+
+    // 2. Shuffle and Upsert Employee Questions (IDs 21-50)
+    const questionsToShuffle = EMPLOYEE_QUESTIONS.map(q => shuffleQuestionOptions(q));
+    const { error: upsertError } = await supabase.from('questions').upsert(questionsToShuffle, { onConflict: 'id' });
+    if (upsertError) throw upsertError;
+
+    // 3. Ensure Set exists
+    let { data: set } = await supabase.from('question_sets').select('id').eq('category_id', cat!.id).eq('title', 'Employee Master Set').single();
+    if (!set) {
+      const { data: newSet, error } = await supabase.from('question_sets').insert([{ 
+        category_id: cat!.id, 
+        title: 'Employee Master Set', 
+        target_audience: 'Corporate Professionals & Teams',
+        description: 'Comprehensive 30-scenario assessment',
+        status: 'active',
+        version: '1.0',
+        show_tags: true
+      }]).select().single();
+      if (error) throw error;
+      set = newSet;
+    }
+
+    // 4. Map all 30 questions
+    const mappings = questionsToShuffle.map((q, i) => ({
+      question_set_id: set!.id,
+      question_id: q.id,
+      display_order: i + 1
+    }));
+
+    await supabase.from('question_set_questions').delete().eq('question_set_id', set!.id);
+    const { error: mapError } = await supabase.from('question_set_questions').insert(mappings);
+    if (mapError) throw mapError;
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Employee sync error:", err);
     return { success: false, error: err.message };
   }
 }

@@ -31,7 +31,7 @@ export default function CategorySelection({ onSelect }: CategorySelectionProps) 
   const getIcon = (slug: string) => {
     if (slug.includes('entrepreneur')) return Briefcase;
     if (slug.includes('student')) return Users;
-    if (slug.includes('corporate')) return Layout;
+    if (slug.includes('employee') || slug.includes('corporate')) return Layout;
     return Zap;
   };
 

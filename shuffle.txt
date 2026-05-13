@@ -1,0 +1,40 @@
+As of now, the DISC assessment options can be assigned manually, which is good.
+
+Before adding this feature, the assessment options were always arranged and assigned in a fixed order like:
+
+* A → D
+* B → I
+* C → S
+* D → C
+
+Because of this fixed structure, the pattern becomes predictable for users.
+
+Now I need the ability to shuffle the options dynamically while still keeping the correct DISC assignment for each option.
+
+Example:
+If an option originally belongs to “D”, and after shuffling it appears as Option C, the evaluation logic should still count it as “D”.
+
+Important:
+
+* Shuffle only the option positions
+* Preserve the correct DISC mapping internally
+* Evaluation/scoring should remain accurate after shuffling
+* The frontend should display randomized option order for each question
+
+Goal:
+
+* prevent pattern prediction
+* make the assessment more natural
+* improve psychological accuracy
+* avoid users guessing DISC mapping patterns
+
+Important:
+Do NOT break:
+
+* existing assessment flow
+* scoring system
+* admin question management
+* result generation
+* current responsive UI
+
+The shuffle logic should work dynamically while maintaining the correct DISC evaluation behind the scenes.

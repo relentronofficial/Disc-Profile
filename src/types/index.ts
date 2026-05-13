@@ -1,14 +1,20 @@
+export interface QuestionOption {
+  text: string;
+  disc: "D" | "I" | "S" | "C";
+}
+
 export interface Question {
   id: number;
   section: number;
   tag: string;
   text: string;
   instruction: string;
+  status: 'active' | 'inactive';
   options: {
-    A: string;
-    B: string;
-    C: string;
-    D: string;
+    A: string | QuestionOption;
+    B: string | QuestionOption;
+    C: string | QuestionOption;
+    D: string | QuestionOption;
   };
 }
 
@@ -112,6 +118,7 @@ export interface QuestionSet {
   version: string;
   status: 'active' | 'inactive';
   total_questions: number;
+  show_tags: boolean;
   created_at?: string;
 }
 
@@ -125,6 +132,7 @@ export interface QuestionSetMapping {
 
 export interface Answer {
   answer: "A" | "B" | "C" | "D";
+  discType?: "D" | "I" | "S" | "C";
   reflection: string;
 }
 

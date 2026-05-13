@@ -1484,15 +1484,22 @@ function prevQuestion() {
 ═════════════════════════════════════════════ */
 function computeScores() {
   const scores = {D:0, I:0, S:0, C:0};
-  Object.values(answers).forEach(a => {
-    if (a.answer === 'A') scores.D++;
-    if (a.answer === 'B') scores.I++;
-    if (a.answer === 'C') scores.S++;
-    if (a.answer === 'D') scores.C++;
+  Object.entries(answers).forEach(([qId, a]) => {
+    const question = QUESTIONS.find(q => q.id == qId);
+    if (question && question.options && question.options[a.answer]) {
+      const opt = question.options[a.answer];
+      const disc = typeof opt === 'object' ? opt.disc : (a.answer === 'A' ? 'D' : a.answer === 'B' ? 'I' : a.answer === 'C' ? 'S' : 'C');
+      if (scores[disc] !== undefined) scores[disc]++;
+    } else {
+      // Emergency fallback if question structure is missing
+      if (a.answer === 'A') scores.D++;
+      if (a.answer === 'B') scores.I++;
+      if (a.answer === 'C') scores.S++;
+      if (a.answer === 'D') scores.C++;
+    }
   });
   return scores;
 }
-
 function dominantType(scores) {
   return Object.entries(scores).sort((a,b) => b[1]-a[1])[0][0];
 }

@@ -6,7 +6,7 @@ import CategorySelection from "@/components/assessment/CategorySelection";
 import IntroScreen from "@/components/assessment/IntroScreen";
 import Questionnaire from "@/components/assessment/Questionnaire";
 import Results from "@/components/assessment/Results";
-import { UserData, Answer } from "@/types";
+import { UserData, Answer, Question } from "@/types";
 import { computeScores } from "@/lib/utils";
 import { saveAssessmentResult } from "@/actions/assessment";
 import { supabase } from "@/lib/supabase";
@@ -22,6 +22,8 @@ export default function Home() {
   const [step, setStep] = useState<Step>("landing");
   const [userData, setUserData] = useState<UserData | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
+  const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
+  const [finalScores, setFinalScores] = useState<{ D: number; I: number; S: number; C: number } | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -31,11 +33,13 @@ export default function Home() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const { step, userData, answers, currentIdx } = JSON.parse(saved);
+        const { step, userData, answers, currentIdx, activeQuestions, finalScores } = JSON.parse(saved);
         if (step) setStep(step as Step);
         if (userData) setUserData(userData);
         if (answers) setAnswers(answers);
         if (typeof currentIdx === 'number') setCurrentIdx(currentIdx);
+        if (activeQuestions) setActiveQuestions(activeQuestions);
+        if (finalScores) setFinalScores(finalScores);
       } catch (e) {
         console.error("Failed to parse saved session", e);
       }
@@ -50,10 +54,12 @@ export default function Home() {
         step,
         userData,
         answers,
-        currentIdx
+        currentIdx,
+        activeQuestions,
+        finalScores
       }));
     }
-  }, [step, userData, answers, currentIdx, isLoaded]);
+  }, [step, userData, answers, currentIdx, isLoaded, activeQuestions, finalScores]);
 
   const handleStart = async (data: UserData) => {
     setUserData(data);
@@ -88,8 +94,12 @@ export default function Home() {
     setStep("questionnaire");
   };
 
-  const handleComplete = async (finalAnswers: Record<number, Answer>) => {
+  const handleComplete = async (finalAnswers: Record<number, Answer>, questions: Question[]) => {
+    console.log("Assessment Complete. Calculating results for", questions.length, "questions.");
+    const scores = computeScores(finalAnswers, questions);
     setAnswers(finalAnswers);
+    setActiveQuestions(questions);
+    setFinalScores(scores);
     setStep("results");
     
     if (userData) {
@@ -109,6 +119,7 @@ export default function Home() {
     setStep("landing");
     setUserData(null);
     setAnswers({});
+    setActiveQuestions([]);
     setCurrentIdx(0);
     setShowLogoutConfirm(false);
   };
@@ -212,7 +223,7 @@ export default function Home() {
           {step === "results" && userData && (
             <Results
               userData={userData}
-              scores={computeScores(answers)}
+              scores={finalScores || computeScores(answers, activeQuestions)}
               onRestart={handleRestart}
             />
           )}

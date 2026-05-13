@@ -1,21 +1,56 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-import { BlendedProfile, DiscProfile, DiscAnalysis } from "@/types";
+import { BlendedProfile, DiscProfile, DiscAnalysis, Question, Answer } from "@/types";
 import { BLEND_TITLES } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function computeScores(answers: Record<number, { answer: string }>) {
+export function computeScores(answers: Record<number, Answer>, questions: Question[]) {
   const scores = { D: 0, I: 0, S: 0, C: 0 };
-  Object.values(answers).forEach((a) => {
-    if (a.answer === "A") scores.D++;
-    if (a.answer === "B") scores.I++;
-    if (a.answer === "C") scores.S++;
-    if (a.answer === "D") scores.C++;
+  
+  console.log("--- DYNAMIC SCORING ENGINE ---");
+  console.log("Total Answers to Process:", Object.keys(answers).length);
+
+  Object.entries(answers).forEach(([qId, a]) => {
+    const questionId = parseInt(qId);
+    let resolvedDisc: "D" | "I" | "S" | "C" | null = null;
+
+    // 1. High Priority: Use the discType captured directly during UI selection
+    if (a.discType) {
+      const normalized = a.discType.trim().toUpperCase();
+      if (["D", "I", "S", "C"].includes(normalized)) {
+        resolvedDisc = normalized as any;
+        console.log(`Q${questionId}: Using UI-Captured mapping -> ${resolvedDisc}`);
+      }
+    }
+
+    // 2. Fallback: Dynamic lookup from the question's 'options' JSON
+    if (!resolvedDisc) {
+      const question = questions.find(q => q.id === questionId);
+      if (question && question.options) {
+        const optionData = (question.options as any)[a.answer];
+        if (optionData && typeof optionData === 'object' && optionData.disc) {
+          const normalized = optionData.disc.trim().toUpperCase();
+          if (["D", "I", "S", "C"].includes(normalized)) {
+            resolvedDisc = normalized as any;
+            console.log(`Q${questionId}: Resolved from DB Question Data -> ${resolvedDisc}`);
+          }
+        }
+      }
+    }
+
+    // 3. Final Increment
+    if (resolvedDisc && scores[resolvedDisc] !== undefined) {
+      scores[resolvedDisc]++;
+    } else {
+      console.error(`CRITICAL: Q${questionId} could not be mapped to DISC. Answer Letter: ${a.answer}`);
+    }
   });
+  
+  console.log("FINAL CALCULATED RAW SCORES:", scores);
   return scores;
 }
 
@@ -188,4 +223,16 @@ export function analyzeDiscProfile(
     leadership: primaryProfile?.traits.leadership || "",
     growth: insights.growthEdge
   };
+}
+
+/**
+ * Shuffles an array using the Fisher-Yates algorithm
+ */
+export function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }

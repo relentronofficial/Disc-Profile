@@ -1,0 +1,98 @@
+The option shuffle feature is now working correctly in the UI, and the DISC mapping for each option is also properly assigned.
+
+Example:
+Even after shuffling:
+
+* Option A may belong to S
+* Option B may belong to D
+* Option C may belong to I
+* Option D may belong to C
+
+The mapping is stored correctly.
+
+BUT the evaluation/scoring logic is still using the OLD hardcoded calculation system:
+
+* A → D
+* B → I
+* C → S
+* D → C
+
+Because of this:
+
+* assessment results are now incorrect
+* users are getting wrong DISC outputs
+* shuffled options are not evaluated properly
+
+Required Fix:
+Completely refactor the scoring/evaluation logic.
+
+New Required Evaluation Logic:
+The system should NO LONGER calculate scores based on:
+
+* option letters (A/B/C/D)
+
+Instead, it should:
+
+* dynamically read the DISC type mapped to the selected option
+* then increment the correct DISC score
+
+Correct Logic Example:
+If:
+
+* Option A is mapped to S
+* Option B is mapped to D
+
+Then:
+
+* selecting A should increase S score
+* selecting B should increase D score
+
+Important:
+The scoring engine must ONLY depend on:
+
+* the mapped DISC value stored for that option
+
+NOT:
+
+* fixed option positions/letters
+
+Backend Requirement:
+Update all evaluation logic:
+
+* result calculation
+* score aggregation
+* dominant type logic
+* blended DISC logic
+* analytics
+* admin result display
+
+Frontend Requirement:
+The shuffled option UI should remain exactly the same.
+Do NOT remove:
+
+* option randomization
+* manual DISC assignment
+* existing responsive improvements
+
+Backward Compatibility:
+
+* Existing old questions should still work safely
+* If a question does not contain dynamic DISC mapping,
+  fallback temporarily to old logic:
+
+  * A → D
+  * B → I
+  * C → S
+  * D → C
+
+Goal:
+Ensure the DISC result is calculated based on:
+
+* the actual mapped DISC type for each option
+
+so that:
+
+* shuffled questions work correctly
+* scoring becomes psychologically accurate
+* users cannot predict patterns
+* results remain reliable and consistent.
