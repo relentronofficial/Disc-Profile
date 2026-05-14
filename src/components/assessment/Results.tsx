@@ -393,17 +393,6 @@ export default function Results({ userData, scores, onRestart }: ResultsProps) {
           <ArrowLeft className="w-4 h-4" />
           Retake Assessment
         </motion.button>
-        <Link href="/admin" className="w-full md:w-auto">
-          <motion.button
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full h-14 md:h-16 px-8 md:px-12 bg-tbt-red hover:bg-tbt-red-hover transition-all duration-500 rounded-xl md:rounded-2xl text-white text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] flex items-center justify-center gap-2 md:gap-3 shadow-2xl relative overflow-hidden group"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            Strategic Dashboard
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/next:translate-x-full transition-transform duration-1000" />
-          </motion.button>
-        </Link>
       </motion.div>
     </div>
   );
