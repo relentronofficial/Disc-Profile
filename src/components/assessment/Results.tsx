@@ -289,42 +289,8 @@ export default function Results({ userData, scores, onRestart }: ResultsProps) {
         </div>
       </motion.div>
 
-      {/* 6. BLIND SPOTS */}
-      <div className="mb-16 md:mb-24">
-        <div className="inline-flex items-center gap-3 text-tbt-red mb-8 md:mb-10">
-          <Shield className="w-5 h-5" />
-          <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em]">The Blind Spot Radar</span>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {insights.blindSpots.map((spot, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-br from-white/[0.03] to-transparent border border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10"
-            >
-              <div className="flex items-center gap-3 mb-4 md:mb-6">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white/5 flex items-center justify-center font-black text-[10px] text-txt3">
-                  {spot.dimension}
-                </div>
-              </div>
-              <p className="text-base md:text-lg text-txt2 font-medium leading-relaxed">
-                {spot.insight}
-              </p>
-            </motion.div>
-          ))}
-          {insights.blindSpots.length === 0 && (
-             <div className="col-span-1 md:col-span-2 text-center py-12 md:py-20 bg-white/[0.01] border border-dashed border-white/10 rounded-[1.5rem] md:rounded-[3rem]">
-                <p className="text-[10px] md:text-xs text-txt3 font-medium italic">No major blind spots detected. You maintain a highly balanced profile.</p>
-             </div>
-          )}
-        </div>
-      </div>
-
       {/* 7. BUSINESS PRESCRIPTION */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
+      <motion.div        initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         className="bg-tbt-red border border-tbt-red/20 rounded-[2rem] md:rounded-[4rem] p-8 md:p-20 mb-16 md:mb-24 relative overflow-hidden group"
