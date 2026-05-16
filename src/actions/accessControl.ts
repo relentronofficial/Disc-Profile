@@ -3,7 +3,11 @@
 import { supabase } from "@/lib/supabase";
 import { Question, QuestionSet } from "@/types";
 
-export async function validateAccessCode(code: string) {
+export type ValidationResult = 
+  | { success: true; questions: Question[]; questionSet: QuestionSet }
+  | { success: false; error: string };
+
+export async function validateAccessCode(code: string): Promise<ValidationResult> {
   try {
     // 1. Fetch the access code mapping to a Category (Pool)
     const { data: mapping, error: mappingError } = await supabase
@@ -40,7 +44,7 @@ export async function validateAccessCode(code: string) {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-        
+
       if (fallbackError || !fallbackSet) {
         return { success: false, error: "No active assessment pool found for this code." };
       }
@@ -54,7 +58,7 @@ export async function validateAccessCode(code: string) {
   }
 }
 
-async function loadQuestionsForSet(questionSet: QuestionSet) {
+async function loadQuestionsForSet(questionSet: QuestionSet): Promise<ValidationResult> {
   // Fetch the questions for this set
   const { data: mappings, error: mapError } = await supabase
     .from('question_set_questions')
