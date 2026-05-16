@@ -25,8 +25,9 @@ export default function AccessCodeForm({ onValidated, onBack }: AccessCodeFormPr
 
     try {
       const result = await validateAccessCode(code);
-      if (result.success && result.questions && result.questionSet) {
-        onValidated(result.questions, result.questionSet);
+      if (result.success) {
+        // Now that result.success is true, TypeScript knows questions and questionSet exist
+        onValidated(result.questions!, result.questionSet!);
       } else {
         setError(result.error || "Validation failed");
       }
