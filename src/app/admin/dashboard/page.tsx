@@ -32,7 +32,8 @@ import {
   Calendar,
   Phone,
   Layers,
-  ListTree
+  ListTree,
+  Key
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { 
@@ -57,6 +58,7 @@ export default function AdminDashboard() {
   // New Question Sets State
   const [categories, setCategories] = useState<AssessmentCategory[]>([]);
   const [sets, setSets] = useState<QuestionSet[]>([]);
+  const [accessCodes, setAccessCodes] = useState<any[]>([]);
   const [activeSetTab, setActiveSetTab] = useState<"categories" | "sets" | "mapping">("categories");
   const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
   const [questionStatusFilter, setQuestionStatusFilter] = useState<'active' | 'inactive'>('active');
@@ -67,6 +69,7 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [discFilter, setDiscFilter] = useState("");
+  const [poolFilter, setPoolFilter] = useState("");
 
   // Detail Drawer State
   const [selectedResult, setSelectedResult] = useState<AssessmentResult | null>(null);
@@ -116,12 +119,13 @@ export default function AdminDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [resResults, resQuestions, resProfiles, resCategories, resSets] = await Promise.all([
+      const [resResults, resQuestions, resProfiles, resCategories, resSets, resCodes] = await Promise.all([
         supabase.from('assessments').select('*').order('created_at', { ascending: false }),
         supabase.from('questions').select('*').order('id', { ascending: true }),
         supabase.from('disc_profiles').select('*').order('letter', { ascending: true }),
         supabase.from('assessment_categories').select('*').order('name', { ascending: true }),
-        supabase.from('question_sets').select('*').order('created_at', { ascending: false })
+        supabase.from('question_sets').select('*').order('created_at', { ascending: false }),
+        supabase.from('access_codes').select('*').order('created_at', { ascending: false })
       ]);
 
       if (resResults.error) throw resResults.error;
@@ -129,11 +133,13 @@ export default function AdminDashboard() {
       if (resProfiles.error) throw resProfiles.error;
       if (resCategories.error) throw resCategories.error;
       if (resSets.error) throw resSets.error;
+      if (resCodes.error) throw resCodes.error;
 
       setResults(resResults.data || []);
       setQuestions(resQuestions.data || []);
       setCategories(resCategories.data || []);
       setSets(resSets.data || []);
+      setAccessCodes(resCodes.data || []);
       
       const mappedProfiles = (resProfiles.data || []).map((p: any) => ({
         letter: p.letter,
@@ -398,7 +404,8 @@ export default function AdminDashboard() {
                           business.includes(search) ||
                           mobile.includes(search);
     const matchesDisc = discFilter === "" || r.dominant_type === discFilter;
-    return matchesSearch && matchesDisc;
+    const matchesPool = poolFilter === "" || r.category_id === poolFilter;
+    return matchesSearch && matchesDisc && matchesPool;
   });
 
   const handleExportCSV = () => {
@@ -622,6 +629,47 @@ export default function AdminDashboard() {
     } catch (err: any) { alert(err.message); } finally { setLoading(false); }
   };
 
+  const handleCreateAccessCode = async () => {
+    const codeInput = document.getElementById('new-access-code') as HTMLInputElement;
+    const catSelect = document.getElementById('new-access-cat-id') as HTMLSelectElement;
+    const code = codeInput.value;
+    const catId = catSelect.value;
+
+    if (!code || !catId) return alert("Please provide both code and category pool.");
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('access_codes').insert([{
+        code: code.toUpperCase(),
+        category_id: catId,
+        status: 'active'
+      }]);
+      if (error) throw error;
+      codeInput.value = "";
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleUpdateAccessCodeStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('access_codes').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleDeleteAccessCode = async (id: string) => {
+    if (!confirm("Are you sure?")) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('access_codes').delete().eq('id', id);
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
+  };
+
   const handleDeleteResult = async () => {
     if (!resultToDelete) return;
     setSaving(true);
@@ -676,6 +724,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab("question_sets")} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative", activeTab === "question_sets" ? "bg-tbt-red-dim text-tbt-red font-bold" : "text-txt2 hover:bg-card hover:text-txt")}>
             <Layers className="w-4 h-4" /> Question Sets
+          </button>
+          <button onClick={() => setActiveTab("access_codes")} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative", activeTab === "access_codes" ? "bg-tbt-red-dim text-tbt-red font-bold" : "text-txt2 hover:bg-card hover:text-txt")}>
+            <Key className="w-4 h-4" /> Access Codes
           </button>
           
           <div className="text-[10px] font-bold text-txt3 uppercase tracking-[0.12em] px-3 mb-3 mt-8">System</div>
@@ -839,6 +890,12 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Filter className="w-4 h-4 text-txt3" />
+                    <select value={poolFilter} onChange={(e) => setPoolFilter(e.target.value)} className="h-11 bg-surface border border-border rounded-xl px-5 text-sm text-txt outline-none focus:border-tbt-red cursor-pointer min-w-[160px] font-bold">
+                      <option value="">All Pools</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
                     <select value={discFilter} onChange={(e) => setDiscFilter(e.target.value)} className="h-11 bg-surface border border-border rounded-xl px-5 text-sm text-txt outline-none focus:border-tbt-red cursor-pointer min-w-[160px] font-bold">
                       <option value="">All Types</option>
                       <option value="D">D — Dominant</option>
@@ -1637,6 +1694,94 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Access Codes Tab */}
+            {activeTab === "access_codes" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="font-serif text-3xl font-black text-txt">Access Control</h1>
+                    <p className="text-sm text-txt3 mt-1 uppercase tracking-widest font-bold">Manage codes and pool mappings</p>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">New Access Code</label>
+                      <input id="new-access-code" type="text" placeholder="e.g. VIP2024" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-txt3 uppercase font-black tracking-widest">Map to Pool (Category)</label>
+                      <select id="new-access-cat-id" className="w-full h-11 bg-surface border border-border rounded-xl px-4 text-sm text-txt outline-none focus:border-tbt-red appearance-none cursor-pointer font-bold">
+                        <option value="">Select a Pool</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button onClick={handleCreateAccessCode} disabled={saving} className="px-8 py-3 bg-tbt-red text-white text-[10px] font-black rounded-xl hover:bg-tbt-red-hover transition-all flex items-center gap-2 uppercase tracking-widest">
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      Generate Code
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-surface/50 border-b border-border">
+                        <th className="px-6 py-4 text-[10px] font-black text-txt3 uppercase tracking-widest">Access Code</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-txt3 uppercase tracking-widest">Mapped Pool</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-txt3 uppercase tracking-widest text-center">Status</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-txt3 uppercase tracking-widest">Created</th>
+                        <th className="px-6 py-4"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {accessCodes.map(code => {
+                        const cat = categories.find(c => c.id === code.category_id);
+                        return (
+                          <tr key={code.id} className="border-b border-border last:border-0 hover:bg-card2/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <span className="text-sm font-black text-tbt-red bg-tbt-red-dim px-2.5 py-1 rounded-lg tracking-widest">{code.code}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-bold text-txt">{cat?.name || "Unknown Pool"}</div>
+                              <div className="text-[10px] text-txt3 uppercase font-bold tracking-widest">{cat?.slug ? `/${cat.slug}` : ""}</div>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <button 
+                                onClick={() => handleUpdateAccessCodeStatus(code.id, code.status)}
+                                className={cn("text-[10px] font-black uppercase px-2.5 py-1 rounded-full border transition-all", 
+                                  code.status === 'active' ? "bg-green-primary/10 text-green-primary border-green-primary/20 hover:bg-green-primary/20" : "bg-txt3/10 text-txt3 border-border hover:bg-txt3/20")}
+                              >
+                                {code.status}
+                              </button>
+                            </td>
+                            <td className="px-6 py-4 text-[11px] text-txt3 font-bold uppercase">
+                              {new Date(code.created_at).toLocaleDateString('en-GB')}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button onClick={() => handleDeleteAccessCode(code.id)} className="p-2.5 bg-surface border border-border rounded-xl text-txt3 hover:text-red-primary hover:border-red-primary transition-all">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {accessCodes.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-20 text-center text-txt3 italic text-xs">
+                            No access codes generated yet. Use the form above to create one.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </motion.div>
             )}

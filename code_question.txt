@@ -1,0 +1,39 @@
+After user clicks “Start Assessment”, show a form asking for an access code.
+
+Flow:
+
+User clicks Start Assessment
+Show code input form
+User enters code
+Based on the code, load the mapped question set dynamically
+
+Example:
+
+Code EMP001 → Employee question set
+Code ENT001 → Entrepreneur question set
+Different codes should load different assessments
+
+Requirements:
+
+Each code should be mapped to a specific question set
+Only the mapped questions should appear in frontend
+Invalid code should show proper error message
+Keep existing assessment UI intact
+Do not break current scoring/result logic
+
+Backend:
+
+Create code-to-question-set mapping
+Fetch question set dynamically using entered code
+
+Frontend:
+
+Add clean responsive code entry screen before assessment starts
+After successful validation, load correct assessment automatically
+
+Important:
+
+Preserve existing assessment flow
+Preserve responsive UI
+Preserve DISC evaluation logic
+Only add dynamic code-based question set access system.

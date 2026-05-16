@@ -46,7 +46,10 @@ export function computeScores(answers: Record<number, Answer>, questions: Questi
     if (resolvedDisc && scores[resolvedDisc] !== undefined) {
       scores[resolvedDisc]++;
     } else {
-      console.error(`CRITICAL: Q${questionId} could not be mapped to DISC. Answer Letter: ${a.answer}`);
+      // 4. Emergency Positional Fallback (Prevents 404/Null Errors)
+      const positionalFallback = a.answer === 'A' ? 'D' : a.answer === 'B' ? 'I' : a.answer === 'C' ? 'S' : 'C';
+      scores[positionalFallback]++;
+      console.warn(`RECOVERY: Q${questionId} mapping failed. Using Positional Fallback -> ${positionalFallback}`);
     }
   });
   

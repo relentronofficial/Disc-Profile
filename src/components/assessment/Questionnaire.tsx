@@ -16,6 +16,7 @@ interface QuestionnaireProps {
   answers: Record<number, Answer>;
   setAnswers: React.Dispatch<React.SetStateAction<Record<number, Answer>>>;
   onComplete: (answers: Record<number, Answer>, questions: Question[]) => void;
+  questions?: Question[];
 }
 
 export default function Questionnaire({ 
@@ -24,15 +25,21 @@ export default function Questionnaire({
   setCurrentIdx, 
   answers, 
   setAnswers, 
-  onComplete 
+  onComplete,
+  questions: initialQuestions
 }: QuestionnaireProps) {
   const [reflection, setReflection] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions || []);
+  const [loading, setLoading] = useState(!initialQuestions);
   const [showTags, setShowTags] = useState(true);
 
   useEffect(() => {
     async function fetchQuestions() {
+      if (initialQuestions) {
+        setLoading(false);
+        return;
+      }
+      
       if (userData.questionSetId) {
         // Fetch from Mapping Table
         const { data, error } = await supabase

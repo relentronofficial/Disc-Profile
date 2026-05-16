@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Landing from "@/components/assessment/Landing";
+import AccessCodeForm from "@/components/assessment/AccessCodeForm";
 import CategorySelection from "@/components/assessment/CategorySelection";
 import IntroScreen from "@/components/assessment/IntroScreen";
 import Questionnaire from "@/components/assessment/Questionnaire";
 import Results from "@/components/assessment/Results";
-import { UserData, Answer, Question } from "@/types";
+import { UserData, Answer, Question, QuestionSet } from "@/types";
 import { computeScores } from "@/lib/utils";
 import { saveAssessmentResult } from "@/actions/assessment";
 import { supabase } from "@/lib/supabase";
@@ -14,7 +15,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, X, AlertTriangle } from "lucide-react";
 
-type Step = "landing" | "category" | "intro" | "questionnaire" | "results";
+type Step = "landing" | "code" | "category" | "intro" | "questionnaire" | "results";
 
 const STORAGE_KEY = "tbt_assessment_session";
 
@@ -23,6 +24,7 @@ export default function Home() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
+  const [questionSet, setQuestionSet] = useState<QuestionSet | null>(null);
   const [finalScores, setFinalScores] = useState<{ D: number; I: number; S: number; C: number } | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -33,12 +35,13 @@ export default function Home() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const { step, userData, answers, currentIdx, activeQuestions, finalScores } = JSON.parse(saved);
+        const { step, userData, answers, currentIdx, activeQuestions, questionSet, finalScores } = JSON.parse(saved);
         if (step) setStep(step as Step);
         if (userData) setUserData(userData);
         if (answers) setAnswers(answers);
         if (typeof currentIdx === 'number') setCurrentIdx(currentIdx);
         if (activeQuestions) setActiveQuestions(activeQuestions);
+        if (questionSet) setQuestionSet(questionSet);
         if (finalScores) setFinalScores(finalScores);
       } catch (e) {
         console.error("Failed to parse saved session", e);
@@ -56,15 +59,29 @@ export default function Home() {
         answers,
         currentIdx,
         activeQuestions,
+        questionSet,
         finalScores
       }));
     }
-  }, [step, userData, answers, currentIdx, isLoaded, activeQuestions, finalScores]);
+  }, [step, userData, answers, currentIdx, isLoaded, activeQuestions, questionSet, finalScores]);
 
   const handleStart = async (data: UserData) => {
     setUserData(data);
-    setStep("category");
+    setStep("code");
     setCurrentIdx(0);
+  };
+
+  const handleCodeValidated = (questions: Question[], set: QuestionSet) => {
+    setActiveQuestions(questions);
+    setQuestionSet(set);
+    if (userData) {
+      setUserData({
+        ...userData,
+        categoryId: set.category_id,
+        questionSetId: set.id
+      });
+    }
+    setStep("intro");
   };
 
   const handleCategorySelect = async (categoryId: string) => {
@@ -120,6 +137,7 @@ export default function Home() {
     setUserData(null);
     setAnswers({});
     setActiveQuestions([]);
+    setQuestionSet(null);
     setCurrentIdx(0);
     setShowLogoutConfirm(false);
   };
@@ -208,6 +226,12 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           {step === "landing" && <Landing onStart={handleStart} />}
+          {step === "code" && (
+            <AccessCodeForm 
+              onValidated={handleCodeValidated} 
+              onBack={() => setStep("landing")} 
+            />
+          )}
           {step === "category" && <CategorySelection onSelect={handleCategorySelect} />}
           {step === "intro" && <IntroScreen onComplete={handleIntroComplete} />}
           {step === "questionnaire" && (
@@ -218,6 +242,7 @@ export default function Home() {
               answers={answers}
               setAnswers={setAnswers}
               onComplete={handleComplete}
+              questions={activeQuestions}
             />
           )}
           {step === "results" && userData && (
